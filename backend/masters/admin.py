@@ -30,7 +30,14 @@ models_to_register = [
     FinancialYear,
     EntityName,
     Currency,
-    Particular
+    Particular,
+    Bank,
+    Country,
+    CurrencyRate,
+    ExternalCA,
+    TDSRate,
+    TDSSection,
+    NatureOfService,
 ]
 
 for model in models_to_register:

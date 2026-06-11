@@ -26,3 +26,11 @@ from .financial_year import FinancialYear
 from .entity_name import EntityName
 from .currency import Currency
 from .particular import Particular
+
+from .bank import Bank
+from .country import Country
+from .currency_rate import CurrencyRate
+from .external_ca import ExternalCA
+from .tds_rate import TDSRate
+from .tds_section import TDSSection
+from .nature_of_service import NatureOfService
