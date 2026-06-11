@@ -109,6 +109,12 @@ export default function TDSOpinionFormPage() {
   const form = useForm({
     defaultValues: sectionFormDefaults(MASTER_FIELDS, "master"),
   });
+  useEffect(() => {
+    const subscription = form.watch((values, info) => {
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   useEffect(() => {
     const matched = findByPath("/" + baseUrl);
@@ -126,6 +132,7 @@ export default function TDSOpinionFormPage() {
   useEffect(() => {
     if (!formQuery.data) return;
     const data = formQuery.data.data || { master: {} };
+    const formValues = nestedToFormValues(data);
     setNestedData(data);
     setStages(formQuery.data.stages || DEFAULT_STAGES);
     setAccordionSections(formQuery.data.accordion_sections || DEFAULT_ACCORDION);
@@ -135,7 +142,7 @@ export default function TDSOpinionFormPage() {
     const sections = formQuery.data.accordion_sections || DEFAULT_ACCORDION;
     const section = sections.find((s) => s.stage === stage);
     setOpenAccordion(section?.key || "master");
-    form.reset(nestedToFormValues(data));
+    form.reset(formValues);
   }, [formQuery.data, form]);
 
   const navigateToList = useCallback(() => {

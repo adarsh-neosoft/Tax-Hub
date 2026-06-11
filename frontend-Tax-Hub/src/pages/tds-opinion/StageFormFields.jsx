@@ -37,11 +37,20 @@ function getFkLabel(item, field) {
 function FkFormField({ control, name, field, disabled }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
-  const params = { ...(field.dropdownParams || {}) };
-  if (debouncedSearch) params.search = debouncedSearch;
+  const params = useMemo(() => {
+    const p = { ...(field.dropdownParams || {}) };
+    if (debouncedSearch) {
+      p.search = debouncedSearch;
+    }
+    return p;
+  }, [field.dropdownParams, debouncedSearch]);
 
-  const { data } = useQuery({
-    queryKey: ["dropdown", field.api, params],
+  const { data = [] } = useQuery({
+    queryKey: [
+      "dropdown",
+      field.api,
+      JSON.stringify(params),
+    ],
     queryFn: () =>
       api.get(`/${field.api}/dropdown`, { params }).then((r) => {
         const d = r.data;
@@ -53,36 +62,59 @@ function FkFormField({ control, name, field, disabled }) {
     <FormField
       control={control}
       name={name}
-      render={({ field: f }) => (
-        <FormItem>
-          <FormLabel>{field.label}</FormLabel>
-          <Select disabled={disabled} onValueChange={f.onChange} value={f.value ? String(f.value) : ""}>
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={`Select ${field.label}`} />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <div className="p-2 pb-1">
-                <Input
-                  placeholder="Search..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 text-sm"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
+      render={({ field: f }) => {
+        const selectedItem = (data).find(
+          (item) => String(item.id) === String(f.value)
+        );
+        return (
+          <FormItem>
+            <FormLabel>{field.label}</FormLabel>
+
+            <Select
+              disabled={disabled}
+              value={String(f.value ?? "")}
+              onValueChange={(value) => {
+                if (value === "" || value == null) {
+                  return;
+                }
+                f.onChange(value);
+              }}
+            >
+              <FormControl>
+                <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={`Select ${field.label}`}
                 />
-              </div>
-              {(data || []).map((item) => (
-                <SelectItem key={item.id} value={String(item.id)}>
-                  {getFkLabel(item, field)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
-      )}
+                </SelectTrigger>
+              </FormControl>
+
+              <SelectContent>
+                <div className="p-2 pb-1">
+                  <Input
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="h-8 text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+
+                {(data).map((item) => (
+                  <SelectItem
+                    key={item.id}
+                    value={String(item.id)}
+                  >
+                    {getFkLabel(item, field)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }

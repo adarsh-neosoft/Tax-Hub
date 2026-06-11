@@ -1,0 +1,26 @@
+asgiref==3.11.1
+boto3==1.43.18
+botocore==1.43.18
+Django==5.2.14
+django-cors-headers==4.9.0
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+iron-stack @ file:///C:/Users/HP-L-61/Documents/TAX-HUB/backend/iron_stack-1.0.0-py3-none-any.whl
+jmespath==1.1.0
+ldap3==2.9.1
+numpy==2.2.6
+pandas==2.3.3
+pillow==12.2.0
+pyasn1==0.6.3
+pycryptodome==3.23.0
+PyJWT==2.13.0
+pypdf==6.12.2
+python-dateutil==2.9.0.post0
+pytz==2026.2
+pyxlsb==1.0.10
+s3transfer==0.18.0
+six==1.17.0
+sqlparse==0.5.5
+typing_extensions==4.15.0
+tzdata==2026.2
+urllib3==2.7.0
