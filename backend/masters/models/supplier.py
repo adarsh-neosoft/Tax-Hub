@@ -74,19 +74,19 @@ class Supplier(BaseModel):
         null=True
     )
 
-    pan = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True
-    )
-
     tin = models.CharField(
         max_length=50,
         blank=True,
         null=True
     )
 
-    exemption = models.DecimalField(
+    pan_if_any = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True
+    )
+
+    exemption_percentage = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         blank=True,
@@ -113,7 +113,7 @@ class Supplier(BaseModel):
         "search_fields": [
             "vendor_code",
             "vendor_name",
-            "pan",
+            "pan_if_any",
             "tin",
             "city",
             "state"
@@ -128,13 +128,14 @@ class Supplier(BaseModel):
         "list_display_fields": [
             "vendor_code",
             "vendor_name",
+            "address",
             "city",
             "state",
             "country",
             "pin_code",
-            "pan",
+            "pan_if_any",
             "tin",
-            "exemption",
+            "exemption_percentage",
             "certificate_number",
             "contact_person_email",
             "is_active"
@@ -143,28 +144,20 @@ class Supplier(BaseModel):
         "form_display_fields": [
             "vendor_code",
             "vendor_name",
-
             "address",
             "street1",
-
             "street2",
             "street3",
-
             "street4",
             "street5",
-
             "city",
             "state",
-
             "country",
             "pin_code",
-
-            "pan",
+            "pan_if_any",
             "tin",
-
-            "exemption",
+            "exemption_percentage",
             "certificate_number",
-
             "contact_person_email",
             "is_active"
         ],
@@ -185,6 +178,3 @@ class Supplier(BaseModel):
     class Meta:
         db_table = "supplier"
         app_label = "masters"
-
-    # def __str__(self):
-    #     return f"{self.vendor_code} - {self.vendor_name}"

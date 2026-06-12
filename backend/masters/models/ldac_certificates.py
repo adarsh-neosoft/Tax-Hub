@@ -5,7 +5,7 @@ from masters.models.legal_entity import LegalEntity
 from masters.models.supplier import Supplier
 
 
-class LDCCertificate(BaseModel):
+class LDACCertificate(BaseModel):
 
     certificate_number = models.CharField(
         max_length=100

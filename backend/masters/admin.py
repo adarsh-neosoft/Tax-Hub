@@ -38,6 +38,8 @@ models_to_register = [
     TDSRate,
     TDSSection,
     NatureOfService,
+    Supplier,
+    LDACCertificate,
 ]
 
 for model in models_to_register:
