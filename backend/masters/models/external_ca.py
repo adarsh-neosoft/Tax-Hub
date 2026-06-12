@@ -34,7 +34,17 @@ class ExternalCA(BaseModel):
         default=True
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
+
+        "dropdown_fields": [
+            "id",
+            "firm_name",
+        ],
         "search_fields": [
             "firm_name",
             "full_name_of_the_partner",

@@ -5,7 +5,7 @@ Django==5.2.14
 django-cors-headers==4.9.0
 djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
-iron-stack @ file:///C:/Users/HP-L-61/Documents/TAX-HUB/backend/iron_stack-1.0.0-py3-none-any.whl
+# iron-stack @ file:/home/dell-l-58/Documents/Tax-Hub/backend/iron_stack-1.0.0-py3-none-any.whl
 jmespath==1.1.0
 ldap3==2.9.1
 numpy==2.2.6

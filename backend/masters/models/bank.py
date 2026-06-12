@@ -43,7 +43,8 @@ class Bank(BaseModel):
 
         "dropdown_fields": [
             "id",
-            "bank_name"
+            "bank_name",
+            "ifsc_code",
         ],
 
         "search_fields": [
