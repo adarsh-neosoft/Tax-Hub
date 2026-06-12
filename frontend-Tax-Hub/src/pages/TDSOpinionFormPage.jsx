@@ -109,6 +109,9 @@ export default function TDSOpinionFormPage() {
   const form = useForm({
     defaultValues: sectionFormDefaults(MASTER_FIELDS, "master"),
   });
+
+  const bankIfscCode = form.watch("bank_detail.bank_ifsc_code");
+
   useEffect(() => {
     const subscription = form.watch((values, info) => {
     });
@@ -122,6 +125,49 @@ export default function TDSOpinionFormPage() {
       setNavSelectedItem(matched);
     }
   }, [baseUrl, findByPath, navSelectedItem, setNavSelectedItem]);
+
+  useEffect(() => {
+
+    if (!bankIfscCode) return;
+
+    const fetchBank = async () => {
+
+      try {
+
+        const response = await api.get(
+          `/masters/bank/${bankIfscCode}/`
+        );
+
+        const bank = response.data;
+
+        form.setValue(
+          "bank_detail.bank_name",
+          bank.bank_name || ""
+        );
+
+        form.setValue(
+          "bank_detail.branch_name",
+          bank.branch_name || ""
+        );
+
+        form.setValue(
+          "bank_detail.bsr_code",
+          bank.bsr_code || ""
+        );
+
+        form.setValue(
+          "bank_detail.itdrein",
+          bank.itdrein || ""
+        );
+
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchBank();
+
+  }, [bankIfscCode, form]);
 
   const formQuery = useQuery({
     queryKey: ["tds-workflow-form", id],

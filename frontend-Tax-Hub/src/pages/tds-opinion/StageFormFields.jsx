@@ -71,7 +71,8 @@ function FkFormField({ control, name, field, disabled }) {
             <FormLabel>{field.label}</FormLabel>
 
             <Select
-              disabled={disabled}
+              // disabled={disabled}
+              disabled={disabled || field.disabled}
               value={String(f.value ?? "")}
               onValueChange={(value) => {
                 if (value === "" || value == null) {
@@ -129,7 +130,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         if (field.type === "fk") {
           return (
             <div key={field.key} className={colSpan}>
-              <FkFormField control={control} name={name} field={field} disabled={disabled} />
+              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} />
             </div>
           );
         }
@@ -143,7 +144,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 render={({ field: f }) => (
                   <FormItem className="flex flex-row items-center gap-3 space-y-0">
                     <FormControl>
-                      <Checkbox disabled={disabled} checked={f.value} onCheckedChange={f.onChange} />
+                      <Checkbox disabled={disabled || field.disabled} checked={f.value} onCheckedChange={f.onChange} />
                     </FormControl>
                     <FormLabel className="font-normal">{field.label}</FormLabel>
                   </FormItem>
@@ -163,7 +164,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                   <FormItem>
                     <FormLabel>{field.label}</FormLabel>
                     <FormControl>
-                      <Textarea disabled={disabled} placeholder={field.label} {...f} />
+                      <Textarea disabled={disabled || field.disabled} placeholder={field.label} {...f} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -188,7 +189,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                           <Button
                             type="button"
                             variant="outline"
-                            disabled={disabled}
+                            disabled={disabled || field.disabled}
                             className={cn("w-full pl-3 text-left font-normal", !f.value && "text-muted-foreground")}
                           >
                             {f.value ? format(new Date(f.value), "yyyy-MM-dd") : "Pick a date"}
@@ -232,7 +233,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                     <FormControl>
                       <Input
                         type="file"
-                        disabled={disabled}
+                        disabled={disabled || field.disabled}
                         onChange={(e) => f.onChange(e.target.files?.[0] ?? null)}
                       />
                     </FormControl>
@@ -254,7 +255,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                   <FormControl>
                     <Input
                       type={field.type === "number" ? "number" : "text"}
-                      disabled={disabled}
+                      disabled={disabled || field.disabled}
                       placeholder={field.label}
                       {...f}
                       onChange={(e) => f.onChange(e.target.value)}
