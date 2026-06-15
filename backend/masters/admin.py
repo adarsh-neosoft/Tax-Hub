@@ -39,7 +39,9 @@ models_to_register = [
     TDSSection,
     NatureOfService,
     Supplier,
-    LDACCertificate,
+    LDCCertificate,
+    RBIPurposeCode,
+    RBIPurposeSubCode,
 ]
 
 for model in models_to_register:

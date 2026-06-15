@@ -35,6 +35,6 @@ from .tds_rate import TDSRate
 from .tds_section import TDSSection
 from .nature_of_service import NatureOfService
 from .supplier import Supplier
-from .ldac_certificates import LDACCertificate
+from .ldc_certificates import LDCCertificate
 from .rbi_purpose_code import RBIPurposeCode
 from .rbi_purpose_sub_code import RBIPurposeSubCode
