@@ -120,7 +120,28 @@ function FkFormField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {} }) {
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, }) {
+
+  const handleButtonClick = (action) => {
+    switch (action) {
+      case "download_form_146":
+        window.open(
+          `/api/tax_requests/tdsopinion/${requestId}/download-form146/`,
+          "_blank"
+        );
+        break;
+
+      case "download_form_146_comparison":
+        window.open(
+          `/api/tax_requests/tdsopinion/${requestId}/download-form146-comparison/`,
+          "_blank"
+        );
+        break;
+
+      default:
+        break;
+    }
+  };
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {fields.map((field) => {
@@ -284,6 +305,22 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 )}
               />
             </div>
+          );
+        }
+
+        if (field.type === "button") {
+          return (
+            <FormItem key={field.key}>
+              <FormLabel>{field.label}</FormLabel>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleButtonClick(field.action)}
+              >
+                Download
+              </Button>
+            </FormItem>
           );
         }
 

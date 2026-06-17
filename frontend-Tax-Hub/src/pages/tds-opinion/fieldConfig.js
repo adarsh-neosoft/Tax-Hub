@@ -151,13 +151,66 @@ export const STAGE_FIELD_CONFIG = {
   ],
   form_146: [
     { key: "remarks", label: "Remarks, if any", type: "textarea" },
+    {
+      key: "download_form_146",
+      label: "Download Form 146",
+      type: "button",
+      action: "download_form_146",
+    },
+
+    {
+      key: "download_form_146_comparison",
+      label: "Download Form 146 Comparison",
+      type: "button",
+      action: "download_form_146_comparison",
+    },
     { key: "form_146_attachment", label: "Form 146", type: "file" },
     { key: "comparison_status", label: "Form 146 Comparison Status", type: "text" },
     { key: "ack_number", label: "Acknowledgement Number", type: "text" },
     { key: "ack_date", label: "Acknowledgement Date", type: "date" },
     { key: "udin", label: "UDIN", type: "text" },
-    { key: "sap_document_number", label: "SAP Document Number", type: "text" },
-    { key: "invoice_posting_date", label: "Invoice Posting Date", type: "date" },
+    {
+      key: "sap_document_number",
+      label: "SAP Document Number",
+      type: "text",
+      disabled: true,
+    },
+
+    {
+      key: "invoice_posting_date",
+      label: "Invoice Posting Date",
+      type: "date",
+      disabled: true,
+    },
+
+    {
+      key: "invoice_copy",
+      label: "Invoice Copy",
+      type: "file",
+      disabled: true,
+    },
+
+    {
+      key: "form_10f_file",
+      label: "Electronically filed Form 10F",
+      type: "file",
+      disabled: true,
+    },
+
+    {
+      key: "trc_file",
+      label: "Tax Residency Certificate (TRC)",
+      type: "file",
+      disabled: true,
+    },
+
+    {
+      key: "no_pe_declaration_file",
+      label: "No PE Declaration",
+      type: "file",
+      disabled: true,
+    },
+
   ],
   form_145: [
     { key: "remarks", label: "Remarks, if any", type: "textarea" },

@@ -390,6 +390,7 @@ export default function TDSOpinionFormPage() {
                 fields={MASTER_FIELDS}
                 disabled={false}
                 fileUrls={{}}
+                requestId={id}
               />
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button type="button" variant="ghost" onClick={handleClear} disabled={saveMutation.isPending}>
@@ -434,6 +435,7 @@ export default function TDSOpinionFormPage() {
                             fields={fields}
                             disabled={!editable}
                             fileUrls={fileUrls}
+                            requestId={id}
                           />
                           {editable && (
                             <div className="flex justify-end gap-2 pt-4 border-t">
