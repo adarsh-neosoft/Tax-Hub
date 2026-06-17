@@ -8,15 +8,46 @@ class BankDetailStage(models.Model):
         related_name="bank_detail",
     )
     bank_remarks = models.TextField(null=True, blank=True, verbose_name="Remarks, if any")
-    bank_ifsc_code = models.CharField(max_length=20, null=True, blank=True, verbose_name="Bank IFSC Code")
+    bank_ifsc_code = models.ForeignKey(
+        "masters.Bank",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Bank IFSC Code",
+    )
+
     bank_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="Name of Bank")
     branch_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="Branch of the Bank")
     bsr_code = models.CharField(max_length=50, null=True, blank=True, verbose_name="BSR Code")
     proposed_remittance_date = models.DateField(null=True, blank=True, verbose_name="Proposed date of remittance")
-    rbi_purpose_code = models.CharField(max_length=100, null=True, blank=True, verbose_name="RBI Purpose Code")
-    rbi_sub_code = models.CharField(max_length=50, null=True, blank=True, verbose_name="RBI Sub Code")
-    form_146_type = models.CharField(max_length=100, null=True, blank=True, verbose_name="Form 146 - Type")
-    external_ca = models.CharField(max_length=255, null=True, blank=True, verbose_name="External CA")
+    rbi_purpose_code = models.ForeignKey(
+        "masters.RBIPurposeCode",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="RBI Purpose Code",
+    )
+    rbi_sub_code = models.ForeignKey(
+        "masters.RBIPurposeSubCode",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="RBI Sub Code",
+    )
+    form_146_type = models.ForeignKey(
+        "masters.Type15CB",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Form 146 - Type",
+    )
+    external_ca = models.ForeignKey(
+        "masters.ExternalCA",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="External CA",
+    )
     multiple_15ca_cb = models.BooleanField(default=False, verbose_name="Multiple 15CA/CB")
     generate_single_15ca_cb = models.BooleanField(
         default=False,

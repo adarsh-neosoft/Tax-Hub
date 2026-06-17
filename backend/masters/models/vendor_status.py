@@ -2,9 +2,12 @@ from django.db import models
 from api.base_model import BaseModel
 
 
-class NatureOfService(BaseModel):
+class VendorStatus(BaseModel):
 
-    service_description = models.TextField()
+    status_name = models.CharField(
+        max_length=100,
+        unique=True,
+    )
 
     model_config = {
         "encrypted_fields": [],
@@ -15,36 +18,37 @@ class NatureOfService(BaseModel):
 
         "dropdown_fields": [
             "id",
-            "service_description",
+            "status_name",
         ],
 
         "search_fields": [
-            "service_description",
+            "status_name",
         ],
 
         "filter_fields": [
-            "service_description",
+            "status_name",
+            "is_active",
         ],
 
         "list_display_fields": [
-            "service_description",
+            "status_name",
             "is_active",
         ],
 
         "form_display_fields": [
-            "service_description",
+            "status_name",
             "is_active",
         ],
     }
 
     ui_config = {
         "navigation_header": "Master Data",
-        "title": "Nature Of Service",
-        "url": "nature-of-service",
-        "ordering": 13,
-        "api_path": "masters/NatureOfService",
+        "title": "Vendor Status",
+        "url": "vendor-status",
+        "ordering": 31,
+        "api_path": "masters/vendorstatus",
     }
 
     class Meta:
-        db_table = "nature_of_service"
+        db_table = "vendor_status"
         app_label = "masters"

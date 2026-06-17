@@ -66,6 +66,7 @@ ACCORDION_SECTIONS = [
 STAGE_MODEL_FIELDS = {
     "tds_opinion_stage": [
         "country",
+        "currency",
         "vendor_status",
         "has_trc",
         "has_no_pe",

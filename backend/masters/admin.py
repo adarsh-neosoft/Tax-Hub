@@ -42,6 +42,8 @@ models_to_register = [
     LDCCertificate,
     RBIPurposeCode,
     RBIPurposeSubCode,
+    Type15CB,
+    VendorStatus,
 ]
 
 for model in models_to_register:

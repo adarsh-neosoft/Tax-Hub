@@ -133,6 +133,8 @@ def _serialize_stage(record, section_key):
         value = getattr(stage_obj, field, None)
         if field in file_fields:
             data[field] = _file_field_url(value)
+        elif field in FK_FIELDS:
+            data[field] = getattr(stage_obj, f"{field}_id", None)
         else:
             data[field] = value
     return data
@@ -223,6 +225,8 @@ def save_workflow_form(record, user, payload, files=None):
         )
         record.last_updated_by = user
         record.save()
+        print("record.id =", record.id)
+        print("record.pk =", record.pk)
 
     for section_key in STAGE_MODEL_FIELDS:
         if section_key not in editable:
@@ -273,6 +277,8 @@ def create_tds_opinion_with_form(user, payload, files=None):
         _extract_section_files(files, "master"),
     )
     record.save()
+    print("record.id:", record.id)
+    print("record.pk:", record.pk)
     workflow = _get_tds_opinion_workflow()
     if workflow:
         start_workflow(record, user, workflow=workflow)
