@@ -135,6 +135,49 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
           );
         }
 
+        if (field.type === "select") {
+          return (
+            <div key={field.key} className={colSpan}>
+              <FormField
+                control={control}
+                name={name}
+                render={({ field: f }) => (
+                  <FormItem>
+                    <FormLabel>{field.label}</FormLabel>
+
+                    <Select
+                      value={String(f.value ?? "")}
+                      onValueChange={f.onChange}
+                      disabled={disabled || field.disabled}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={`Select ${field.label}`}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+
+                      <SelectContent>
+                        {field.options.map((option) => (
+                          <SelectItem
+                            key={option}
+                            value={option}
+                          >
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          );
+        }
+
         if (field.type === "checkbox") {
           return (
             <div key={field.key} className={colSpan}>
@@ -254,11 +297,22 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                   <FormLabel>{field.label}</FormLabel>
                   <FormControl>
                     <Input
-                      type={field.type === "number" ? "number" : "text"}
-                      disabled={disabled || field.disabled}
-                      placeholder={field.label}
                       {...f}
-                      onChange={(e) => f.onChange(e.target.value)}
+                      type={field.type === "number" ? "number" : "text"}
+                      disabled={disabled}
+                      readOnly={field.disabled}
+                      placeholder={field.label}
+                      value={f.value ?? ""}
+                      onChange={(e) => {
+                        const value =
+                          field.type === "number"
+                            ? e.target.value === ""
+                              ? ""
+                              : Number(e.target.value)
+                            : e.target.value;
+
+                        f.onChange(value);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

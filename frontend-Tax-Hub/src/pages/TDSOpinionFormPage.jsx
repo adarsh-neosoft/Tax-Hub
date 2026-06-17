@@ -112,12 +112,98 @@ export default function TDSOpinionFormPage() {
 
   const bankIfscCode = form.watch("bank_detail.bank_ifsc_code");
 
+  const invoiceValueFc = form.watch("tds_opinion_stage.invoice_value_fc");
+  const assesseableValueFc = form.watch("tds_opinion_stage.assesseable_value_fc");
+  const exchangeRate = form.watch("tds_opinion_stage.exchange_rate");
+  const taxRate = form.watch("tds_opinion_stage.tax_rate");
+  const grossingUpApplicable = form.watch("tds_opinion_stage.grossing_up_applicable");
+
   useEffect(() => {
     const subscription = form.watch((values, info) => {
     });
 
     return () => subscription.unsubscribe();
   }, [form]);
+
+  useEffect(() => {
+    const invoiceFc = parseFloat(invoiceValueFc || 0);
+    const assessFc = parseFloat(assesseableValueFc || 0);
+    const rate = parseFloat(exchangeRate || 0);
+    const tdsRate = parseFloat(taxRate || 0);
+
+    const invoiceInr = invoiceFc * rate;
+    const assessInr = assessFc * rate;
+
+    let tdsFc = 0;
+    let tdsInr = 0;
+
+    if (grossingUpApplicable) {
+      tdsFc =
+        tdsRate > 0
+          ? (assessFc / (1 - tdsRate / 100)) * (tdsRate / 100)
+          : 0;
+
+      tdsInr =
+        tdsRate > 0
+          ? (assessInr / (1 - tdsRate / 100)) * (tdsRate / 100)
+          : 0;
+    } else {
+      tdsFc = assessFc * (tdsRate / 100);
+      tdsInr = assessInr * (tdsRate / 100);
+    }
+
+    const netPayableFc = grossingUpApplicable
+      ? invoiceFc
+      : invoiceFc - tdsFc;
+
+    const netPayableInr = grossingUpApplicable
+      ? invoiceInr
+      : invoiceInr - tdsInr;
+
+    form.setValue(
+      "tds_opinion_stage.invoice_value_inr",
+      invoiceInr.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+    form.setValue(
+      "tds_opinion_stage.assesseable_value_inr",
+      assessInr.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+    form.setValue(
+      "tds_opinion_stage.tds_amount_fc",
+      tdsFc.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+    form.setValue(
+      "tds_opinion_stage.tds_amount_inr",
+      tdsInr.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+    form.setValue(
+      "tds_opinion_stage.net_payable_fc",
+      netPayableFc.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+    form.setValue(
+      "tds_opinion_stage.net_payable_inr",
+      netPayableInr.toFixed(2),
+      { shouldDirty: true, shouldValidate: true }
+    );
+
+  }, [
+    invoiceValueFc,
+    assesseableValueFc,
+    exchangeRate,
+    taxRate,
+    grossingUpApplicable,
+    form,
+  ]);
 
   useEffect(() => {
     const matched = findByPath("/" + baseUrl);
