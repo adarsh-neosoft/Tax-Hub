@@ -23,8 +23,8 @@ class Form146Stage(models.Model):
     ack_number = models.CharField(max_length=100, null=True, blank=True, verbose_name="Acknowledgement Number")
     ack_date = models.DateField(null=True, blank=True, verbose_name="Acknowledgement Date")
     udin = models.CharField(max_length=100, null=True, blank=True, verbose_name="UDIN")
-    sap_document_number = models.CharField(max_length=100, null=True, blank=True, verbose_name="SAP Document Number")
-    invoice_posting_date = models.DateField(null=True, blank=True, verbose_name="Invoice Posting Date")
+    # sap_document_number = models.CharField(max_length=100, null=True, blank=True, verbose_name="SAP Document Number")
+    # invoice_posting_date = models.DateField(null=True, blank=True, verbose_name="Invoice Posting Date")
 
     class Meta:
         db_table = "form_146_stage"

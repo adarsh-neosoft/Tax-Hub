@@ -121,22 +121,75 @@ def get_visible_accordion_sections(current_stage_name):
     return [section for section in ACCORDION_SECTIONS if section["stage"] in visible_stages]
 
 
+# def _serialize_stage(record, section_key):
+#     related_name = RELATED_NAMES[section_key]
+#     stage_obj = getattr(record, related_name, None)
+#     if stage_obj is None:
+#         return {}
+#     fields = STAGE_MODEL_FIELDS[section_key]
+#     data = {}
+#     file_fields = set(FILE_FIELDS.get(section_key, []))
+#     for field in fields:
+#         value = getattr(stage_obj, field, None)
+#         if field in file_fields:
+#             data[field] = _file_field_url(value)
+#         elif field in FK_FIELDS:
+#             data[field] = getattr(stage_obj, f"{field}_id", None)
+#         else:
+#             data[field] = value
+#     return data
+
 def _serialize_stage(record, section_key):
     related_name = RELATED_NAMES[section_key]
     stage_obj = getattr(record, related_name, None)
-    if stage_obj is None:
-        return {}
-    fields = STAGE_MODEL_FIELDS[section_key]
+
     data = {}
+
+    # Add computed fields first
+    if section_key == "form_146":
+        invoice_posting = getattr(record, "invoice_posting", None)
+
+        data["sap_document_number"] = (
+            invoice_posting.document_number
+            if invoice_posting else None
+        )
+
+        data["invoice_posting_date"] = (
+            invoice_posting.invoice_posting_date
+            if invoice_posting else None
+        )
+
+        data["invoice_copy"] = _file_field_url(record.invoice_file)
+
+        data["form_10f_file"] = _file_field_url(
+            record.form_10f_file
+        )
+
+        data["trc_file"] = _file_field_url(record.trc_file)
+
+        data["no_pe_declaration_file"] = _file_field_url(
+            record.no_pe_declaration_file
+        )
+
+    # No stage record yet? Return computed fields only
+    if stage_obj is None:
+        return data
+
+    fields = STAGE_MODEL_FIELDS[section_key]
     file_fields = set(FILE_FIELDS.get(section_key, []))
+
     for field in fields:
         value = getattr(stage_obj, field, None)
+
         if field in file_fields:
             data[field] = _file_field_url(value)
+
         elif field in FK_FIELDS:
             data[field] = getattr(stage_obj, f"{field}_id", None)
+
         else:
             data[field] = value
+
     return data
 
 

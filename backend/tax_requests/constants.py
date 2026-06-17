@@ -121,8 +121,8 @@ STAGE_MODEL_FIELDS = {
         "ack_number",
         "ack_date",
         "udin",
-        "sap_document_number",
-        "invoice_posting_date",
+        # "sap_document_number",
+        # "invoice_posting_date",
     ],
     "form_145": [
         "remarks",
