@@ -284,25 +284,47 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
-                render={({ field: f }) => (
-                  <FormItem>
-                    <FormLabel>{field.label}</FormLabel>
-                    {current && (
-                      <div className="mb-1">
-                        <a href={current} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
-                          View current file
-                        </a>
-                      </div>
-                    )}
-                    <FormControl>
-                      <Input
-                        type="file"
-                        disabled={disabled || field.disabled}
-                        onChange={(e) => f.onChange(e.target.files?.[0] ?? null)}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
+                render={({ field: f, fieldState }) => {
+                  const hasError = !!fieldState.error;
+
+                  return (
+                    <FormItem>
+                      <FormLabel
+                        className={hasError ? "text-destructive" : ""}
+                      >
+                        {field.label}
+                      </FormLabel>
+
+                      {current && (
+                        <div className="mb-1">
+                          <a
+                            href={current}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-primary underline"
+                          >
+                            View current file
+                          </a>
+                        </div>
+                      )}
+                      <FormControl>
+                        <Input
+                          ref={f.ref}
+                          name={f.name}
+                          type="file"
+                          disabled={disabled || field.disabled}
+                          aria-invalid={hasError}
+                          onBlur={f.onBlur}
+                          onChange={(e) =>
+                            f.onChange(e.target.files?.[0] ?? null)
+                          }
+                        />
+                      </FormControl>
+
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
           );

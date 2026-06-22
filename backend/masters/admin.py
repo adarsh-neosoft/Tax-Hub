@@ -44,6 +44,7 @@ models_to_register = [
     RBIPurposeSubCode,
     Type15CB,
     VendorStatus,
+    PurchaseOrder,
 ]
 
 for model in models_to_register:

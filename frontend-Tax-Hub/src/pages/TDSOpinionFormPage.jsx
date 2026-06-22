@@ -117,6 +117,9 @@ export default function TDSOpinionFormPage() {
   const exchangeRate = form.watch("tds_opinion_stage.exchange_rate");
   const taxRate = form.watch("tds_opinion_stage.tax_rate");
   const grossingUpApplicable = form.watch("tds_opinion_stage.grossing_up_applicable");
+  const poNpo = form.watch("master.po_npo");
+  const particular = form.watch("master.particular");
+  const [particularOptions, setParticularOptions] = useState([]);
 
   useEffect(() => {
     const subscription = form.watch((values, info) => {
@@ -255,6 +258,22 @@ export default function TDSOpinionFormPage() {
 
   }, [bankIfscCode, form]);
 
+  useEffect(() => {
+    const fetchParticulars = async () => {
+      try {
+        const response = await api.get(
+          "/masters/particular/dropdown"
+        );
+
+        setParticularOptions(response.data.results || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchParticulars();
+  }, []);
+
   const formQuery = useQuery({
     queryKey: ["tds-workflow-form", id],
     queryFn: () => api.get(`/tax_requests/tdsopinion/${id}/workflow-form/`).then((r) => r.data),
@@ -326,7 +345,39 @@ export default function TDSOpinionFormPage() {
         form.reset(nestedToFormValues(res.data.data));
       }
     },
-    onError: (err) => toast.error(err.response?.data?.detail || "Save failed"),
+    onError: (error) => {
+      const detail = error?.response?.data?.detail || "";
+
+      form.clearErrors();
+
+      const fieldMap = {
+        form_10f_file: "Electronically filed Form 10F",
+        no_pe_declaration_file: "No PE Declaration",
+        trc_file: "Tax Residency Certificate (TRC)",
+        contract_agreement_copy: "Contract Agreement Copy",
+        proof_of_reimbursement_file: "Proof of reimbursement claims",
+      };
+
+      Object.entries(fieldMap).forEach(([backendField, label]) => {
+        if (detail.includes(backendField)) {
+          form.setError(`master.${backendField}`, {
+            type: "manual",
+            message: `${label} is required`,
+          });
+        console.log(
+          backendField,
+          form.getFieldState(`master.${backendField}`)
+        );
+        }
+      });
+
+      setTimeout(() => {
+        console.log(form.formState.errors);
+      }, 100);
+
+      toast.error(detail || "Please fill all required fields.");
+    },
+    // onError: (err) => toast.error(err.response?.data?.detail || "Save failed"),
   });
 
   const handleBack = useCallback(() => {
@@ -352,12 +403,141 @@ export default function TDSOpinionFormPage() {
     [],
   );
 
+  const validateParticularDocuments = (values) => {
+    const master = values.master || {};
+
+    form.clearErrors([
+      "master.form_10f_file",
+      "master.no_pe_declaration_file",
+      "master.trc_file",
+      "master.contract_agreement_copy",
+      "master.proof_of_reimbursement_file",
+    ]);
+
+    const errors = [];
+
+    const selectedParticular = particularOptions.find(
+      (item) => String(item.id) === String(master.particular)
+    );
+
+    const particularName = (
+      selectedParticular?.particular_name || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (particularName === "supply of goods") {
+      if (!master.no_pe_declaration_file) {
+        form.setError("master.no_pe_declaration_file", {
+          type: "required",
+          message: "No PE Declaration is required",
+        });
+
+        errors.push("No PE Declaration is required");
+      }
+    }
+
+    if (particularName === "supply of services") {
+      if (!master.form_10f_file) {
+        form.setError("master.form_10f_file", {
+          type: "required",
+          message: "Form 10F is required",
+        });
+
+        errors.push("Form 10F is required");
+      }
+
+      if (!master.no_pe_declaration_file) {
+        form.setError("master.no_pe_declaration_file", {
+          type: "required",
+          message: "No PE Declaration is required",
+        });
+
+        errors.push("No PE Declaration is required");
+      }
+
+      if (!master.trc_file) {
+        form.setError("master.trc_file", {
+          type: "required",
+          message: "TRC file is required",
+        });
+
+        errors.push("TRC file is required");
+      }
+
+      if (!master.contract_agreement_copy) {
+        form.setError("master.contract_agreement_copy", {
+          type: "required",
+          message: "Contract Agreement Copy is required",
+        });
+
+        errors.push("Contract Agreement Copy is required");
+      }
+    }
+
+    if (
+      particularName.includes("pure reimbursement") ||
+      particularName.includes("any other income")
+    ) {
+      if (!master.proof_of_reimbursement_file) {
+        form.setError("master.proof_of_reimbursement_file", {
+          type: "required",
+          message: "Proof of reimbursement claims is required",
+        });
+
+        errors.push("Proof of reimbursement claims is required");
+      }
+    }
+
+    return errors;
+  };
+
   const submitSection = (sectionKey) => {
-    form.handleSubmit((values) => saveMutation.mutate({ values, sectionKey }))();
+    form.handleSubmit((values) => {
+
+      if (sectionKey === "master") {
+        const errors = validateParticularDocuments(values);
+
+        if (errors.length) {
+          toast.error(
+          <div className="space-y-1">
+            {errors.map((error, index) => (
+              <div key={index}>{error}</div>
+            ))}
+          </div>
+        );
+          return;
+        }
+      }
+
+      saveMutation.mutate({
+        values,
+        sectionKey,
+      });
+
+    })();
   };
 
   const submitCreate = form.handleSubmit(
-    (values) => saveMutation.mutate({ values, sectionKey: "master" }),
+    (values) => {
+      const errors = validateParticularDocuments(values);
+
+      if (errors.length) {
+        toast.error(
+        <div className="space-y-1">
+          {errors.map((error, index) => (
+            <div key={index}>{error}</div>
+          ))}
+        </div>
+      );
+        return;
+      }
+
+      saveMutation.mutate({
+        values,
+        sectionKey: "master",
+      });
+    },
     () => toast.error("Please check the form and try again."),
   );
 
@@ -387,7 +567,13 @@ export default function TDSOpinionFormPage() {
               <StageFormFields
                 control={form.control}
                 sectionKey="master"
-                fields={MASTER_FIELDS}
+                fields={
+                  poNpo
+                    ? MASTER_FIELDS
+                    : MASTER_FIELDS.filter(
+                        (field) => field.key !== "po_number"
+                      )
+                }
                 disabled={false}
                 fileUrls={{}}
                 requestId={id}
@@ -432,7 +618,13 @@ export default function TDSOpinionFormPage() {
                           <StageFormFields
                             control={form.control}
                             sectionKey={section.key}
-                            fields={fields}
+                            fields={
+                              section.key === "master" && !poNpo
+                                ? fields.filter(
+                                    (field) => field.key !== "po_number"
+                                  )
+                                : fields
+                            }
                             disabled={!editable}
                             fileUrls={fileUrls}
                             requestId={id}

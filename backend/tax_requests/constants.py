@@ -19,6 +19,7 @@ MASTER_INITIATED_FIELDS = [
     "pan_number",
     "tin_number",
     "po_npo",
+    "po_number",
     "grossing_up",
     "currency",
     "particular",

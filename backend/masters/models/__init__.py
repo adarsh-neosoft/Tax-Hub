@@ -40,3 +40,4 @@ from .rbi_purpose_code import RBIPurposeCode
 from .rbi_purpose_sub_code import RBIPurposeSubCode
 from .type15cb import Type15CB
 from .vendor_status import VendorStatus
+from .purchase_order import PurchaseOrder

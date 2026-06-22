@@ -3,6 +3,8 @@ from django.contrib.contenttypes.models import ContentType
 from workflow.engine import start_workflow
 from workflow.models import Workflow, WorkflowInstance
 
+from masters.models import Particular
+
 from tax_requests.constants import (
     ACCORDION_SECTIONS,
     MASTER_INITIATED_FIELDS,
@@ -149,7 +151,7 @@ def _serialize_stage(record, section_key):
     if section_key == "form_146":
         invoice_posting = getattr(record, "invoice_posting", None)
 
-        data["sap_document_number"] = (
+        data["document_number"] = (
             invoice_posting.document_number
             if invoice_posting else None
         )
@@ -270,6 +272,51 @@ def save_workflow_form(record, user, payload, files=None):
 
     master_data = payload.get("master", {})
     if "master" in editable and (master_data or _extract_section_files(files, "master")):
+        master_files = _extract_section_files(files or {}, "master")
+
+        particular_id = master_data.get("particular")
+
+        required_files = []
+
+        particular = Particular.objects.filter(id=particular_id).first()
+
+        if particular:
+            particular_name = (particular.particular_name.strip().lower())
+
+            if "suppy of goods" in particular_name:
+                required_files = [
+                    "no_pe_declaration_file",
+                ]
+
+            elif "supply of services" in particular_name:
+                required_files = [
+                    "form_10f_file",
+                    "no_pe_declaration_file",
+                    "trc_file",
+                    "contract_agreement_copy",
+                ]
+
+            elif (
+                "pure reimbursement" in particular_name
+                or "any other income" in particular_name
+            ):
+                required_files = [
+                    "proof_of_reimbursement_file",
+                ]
+
+        missing = []
+
+        for field in required_files:
+            uploaded_now = field in master_files
+            existing_file = getattr(record, field, None)
+
+            if not uploaded_now and not existing_file:
+                missing.append(field)
+
+        if missing:
+            raise ValueError(
+                f"Required documents missing: {', '.join(missing)}"
+            )
         _apply_fields(
             record,
             MASTER_INITIATED_FIELDS,
@@ -316,6 +363,49 @@ def create_tds_opinion_with_form(user, payload, files=None):
     if not _section_has_data(master_data, files, "master"):
         raise ValueError(
             "No form data was received. Please fill in the request details and try again."
+        )
+    
+    master_files = _extract_section_files(files or {}, "master")
+
+    particular_id = master_data.get("particular")
+
+    required_files = []
+
+    particular = Particular.objects.filter(id=particular_id).first()
+
+    if particular:
+        particular_name = (particular.particular_name.strip().lower())
+
+        if "suppy of goods" in particular_name:
+            required_files = [
+                "no_pe_declaration_file",
+            ]
+
+        elif "supply of services" in particular_name:
+            required_files = [
+                "form_10f_file",
+                "no_pe_declaration_file",
+                "trc_file",
+                "contract_agreement_copy",
+            ]
+
+        elif (
+            "pure reimbursement" in particular_name
+            or "any other income" in particular_name
+        ):
+            required_files = [
+                "proof_of_reimbursement_file",
+            ]
+
+    missing = [
+        field
+        for field in required_files
+        if field not in master_files
+    ]
+
+    if missing:
+        raise ValueError(
+            f"Required documents missing: {', '.join(missing)}"
         )
     record = TDSOpinion(
         created_by=user,

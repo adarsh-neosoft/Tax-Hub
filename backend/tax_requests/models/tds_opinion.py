@@ -69,6 +69,13 @@ class TDSOpinion(BaseModel):
         verbose_name="PO / NPO"
     )
 
+    po_number = models.ForeignKey(
+        "masters.PurchaseOrder",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+
     grossing_up = models.BooleanField(
         default=False,
         verbose_name="Grossing up"
@@ -257,8 +264,7 @@ class TDSOpinion(BaseModel):
 
         "list_display_fields": [
             "request_code",
-            # "vendor",
-            "vendor_name",
+            # "vendor_name",
             "vendor_code",
             "company_code",
             "invoice_date",
@@ -276,6 +282,7 @@ class TDSOpinion(BaseModel):
             "pan_number",
             "tin_number",
             "po_npo",
+            "po_number",
             "grossing_up",
             "currency",
             "particular",
@@ -303,6 +310,7 @@ class TDSOpinion(BaseModel):
             "company",
             "currency",
             "particular",
+            "po_number",
         ],
     }
 
