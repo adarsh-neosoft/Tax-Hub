@@ -46,6 +46,11 @@ class LDCCertificate(BaseModel):
         decimal_places=2
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
         "dropdown_fields": [
             "id",

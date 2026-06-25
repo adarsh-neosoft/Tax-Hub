@@ -8,7 +8,17 @@ export const MASTER_FIELDS = [
     labelFields: ["sap_code", "entity_name"],
     dropdownParams: { fields: "sap_code,entity_name", search_fields: "sap_code,entity_name" },
   },
-  { key: "vendor", label: "Vendor", type: "text" },
+  // { key: "vendor", label: "Vendor", type: "text" },
+  {
+    key: "vendor",
+    label: "Vendor",
+    type: "supplier_search",
+    api: "masters/supplier",
+    labelFields: ["vendor_name", "vendor_code"],
+    dropdownParams: {
+      search_fields: "vendor_name,vendor_code",
+    },
+  },
   { key: "pan_number", label: "PAN Number", type: "text" },
   { key: "tin_number", label: "TIN Number", type: "text" },
   { key: "po_npo", label: "PO / NPO", type: "checkbox" },
@@ -89,7 +99,11 @@ export const STAGE_FIELD_CONFIG = {
     { key: "invoice_value_inr", label: "Invoice Value (INR)", type: "number", disabled: true },
     { key: "assesseable_value_inr", label: "Assesseable Value (INR)", type: "number", disabled: true },
     { key: "tds_section", label: "TDS Section", type: "text" },
-    { key: "tax_rate", label: "TDS Rate (%)", type: "number" },
+    {
+      key: "tax_rate",
+      label: "TDS Rate (%)",
+      type: "tds_rate",
+    },
     { key: "ldc_certificate", label: "LDC Certificate", type: "text" },
     {
       key: "form_146_type",

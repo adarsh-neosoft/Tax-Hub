@@ -121,7 +121,7 @@ class IndemnityTracker(BaseModel):
         "search_fields": ["financial_year"],
         "filter_fields": ["financial_year"],
         "list_display_fields": [
-            "entity_name.entity_name",
+            "entity_name",
             "created_at",
             "created_by",
             "financial_year",

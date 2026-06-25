@@ -9,6 +9,11 @@ class TDSRate(BaseModel):
         decimal_places=3
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
         "search_fields": [
             "tds_rate",
@@ -16,6 +21,10 @@ class TDSRate(BaseModel):
 
         "filter_fields": [
             "tds_rate",
+        ],
+
+        "dropdown_fields": [
+            "tds_rate"
         ],
 
         "list_display_fields": [

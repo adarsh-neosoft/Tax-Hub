@@ -15,4 +15,12 @@ export default defineConfig({
       { find: /^@\//, replacement: `${path.resolve(ironStackRoot, 'src')}/` },
     ],
   },
+  server: {
+    proxy: {
+      '/media/': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

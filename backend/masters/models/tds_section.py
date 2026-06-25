@@ -8,6 +8,11 @@ class TDSSection(BaseModel):
         max_length=100
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
         "search_fields": [
             "TDS_section",

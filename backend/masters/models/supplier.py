@@ -104,6 +104,11 @@ class Supplier(BaseModel):
         null=True
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
         "dropdown_fields": [
             "vendor_code",

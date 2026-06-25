@@ -143,6 +143,16 @@ STAGE_MODEL_FIELDS = {
     "approved": ["approval_remarks"],
 }
 
+# Mapping of master file fields to their corresponding valid_upto fields
+FILE_VALIDITY_MAP = {
+    "form_10f_file": "form_10f_valid_upto",
+    "trc_file": "trc_valid_upto",
+    "contract_agreement_copy": "agreement_valid_upto",
+    "pan_file": "pan_valid_upto",
+    "no_pe_declaration_file": "no_pe_valid_upto",
+    "proof_of_reimbursement_file": "reimbursement_valid_upto",
+}
+
 STAGE_FILE_FIELDS = {
     "master": [
         "invoice_file",

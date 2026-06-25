@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "iron-stack-ui";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
@@ -13,6 +15,23 @@ import { Calendar } from "@/components/ui/calendar.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { cn } from "@/utils/utils.ts";
 import { fieldName } from "./formUtils";
+
+const useTdsRateOptions = () => {
+  return useQuery({
+    queryKey: ["tds-rate-dropdown"],
+    queryFn: async () => {
+      const response = await api.get(
+        "/masters/TDSRate/dropdown"
+      );
+
+      const d = response.data;
+
+      return Array.isArray(d)
+        ? d
+        : d.results || [];
+    },
+  });
+};
 
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -28,13 +47,47 @@ function getFkLabel(item, field) {
     const parts = field.labelFields.map((k) => item[k]).filter((v) => v != null && v !== "");
     if (parts.length) return parts.join(" - ");
   }
+  if (item.tds_rate) return String(item.tds_rate);
   if (item.sap_code && item.entity_name) return `${item.sap_code} - ${item.entity_name}`;
   if (item.particular_name) return String(item.particular_name);
   if (item.currency) return String(item.currency);
   return `#${item.id}`;
 }
 
-function FkFormField({ control, name, field, disabled }) {
+function getFilenameFromUrl(url) {
+  const parts = url.split("/");
+  return parts[parts.length - 1] || "download";
+}
+
+async function downloadFileWithDialog(url) {
+  const filename = getFilenameFromUrl(url);
+
+  // Try the modern File System Access API (shows native Save As dialog)
+  if ("showSaveFilePicker" in window) {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: filename,
+    });
+    const writable = await handle.createWritable();
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status} ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    await writable.write(blob);
+    await writable.close();
+    return;
+  }
+
+  // Fallback: trigger download via anchor element
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function FkFormField({ control, name, field, disabled, formValues }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const params = useMemo(() => {
@@ -42,8 +95,15 @@ function FkFormField({ control, name, field, disabled }) {
     if (debouncedSearch) {
       p.search = debouncedSearch;
     }
+    if (
+      field.key === "rbi_sub_code" &&
+      formValues?.bank_detail?.rbi_purpose_code
+    ) {
+      p.rbi_purpose_code =
+        formValues.bank_detail.rbi_purpose_code;
+    }
     return p;
-  }, [field.dropdownParams, debouncedSearch]);
+  }, [field.dropdownParams, debouncedSearch, formValues, field.key]);
 
   const { data = [] } = useQuery({
     queryKey: [
@@ -90,7 +150,7 @@ function FkFormField({ control, name, field, disabled }) {
               </FormControl>
 
               <SelectContent>
-                <div className="p-2 pb-1">
+                {/* <div className="p-2 pb-1">
                   <Input
                     placeholder="Search..."
                     value={search}
@@ -99,7 +159,7 @@ function FkFormField({ control, name, field, disabled }) {
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   />
-                </div>
+                </div> */}
 
                 {(data).map((item) => (
                   <SelectItem
@@ -120,7 +180,189 @@ function FkFormField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, }) {
+// function SupplierSearchField({ control, name, field, disabled }) {
+//   const [search, setSearch] = useState("");
+
+//   const debouncedSearch = useDebounce(search, 300);
+
+//   const params = useMemo(() => {
+//     const p = {
+//       ...(field.dropdownParams || {}),
+//     };
+
+//     if (debouncedSearch) {
+//       p.search = debouncedSearch;
+//     }
+
+//     return p;
+//   }, [field.dropdownParams, debouncedSearch]);
+
+//   const { data = [] } = useQuery({
+//     queryKey: [
+//       "supplier-dropdown",
+//       debouncedSearch,
+//     ],
+
+//     queryFn: () =>
+//       api.get(`/${field.api}/dropdown`, { params }).then((r) => {
+//         const d = r.data;
+//         return Array.isArray(d) ? d : d.results || [];
+//       }),
+//   });
+
+//   return (
+//     <FormField
+//       control={control}
+//       name={name}
+//       render={({ field: f }) => (
+//         <FormItem>
+//           <FormLabel>{field.label}</FormLabel>
+
+//           <Select
+//             disabled={disabled || field.disabled}
+//             value={f.value || ""}
+//             onValueChange={f.onChange}
+//           >
+//             <FormControl>
+//               <SelectTrigger className="w-full">
+//                 <SelectValue
+//                   placeholder={`Search ${field.label}`}
+//                 />
+//               </SelectTrigger>
+//             </FormControl>
+
+//             <SelectContent>
+//               <div className="p-2 pb-1">
+//                 <Input
+//                   placeholder="Search supplier..."
+//                   value={search}
+//                   onChange={(e) => setSearch(e.target.value)}
+//                   className="h-8 text-sm"
+//                   onClick={(e) => e.stopPropagation()}
+//                   onKeyDown={(e) => e.stopPropagation()}
+//                 />
+//               </div>
+
+//               {f.value &&
+//               !data.some(
+//                 (item) =>
+//                   `${item.vendor_name} (${item.vendor_code})` === f.value
+//               ) && (
+//                 <SelectItem value={f.value}>
+//                   {f.value}
+//                 </SelectItem>
+//               )}
+
+//               {data.map((item) => {
+//                 const displayValue =
+//                   `${item.vendor_name} (${item.vendor_code})`;
+
+//                 return (
+//                   <SelectItem
+//                     key={item.id}
+//                     value={displayValue}
+//                   >
+//                     {displayValue}
+//                   </SelectItem>
+//                 );
+//               })}
+//             </SelectContent>
+//           </Select>
+
+//           <FormMessage />
+//         </FormItem>
+//       )}
+//     />
+//   );
+// }
+function SupplierSearchField({ control, name, field, disabled }) {
+  const [search, setSearch] = useState("");
+
+  const debouncedSearch = useDebounce(search, 300);
+
+  const params = useMemo(() => {
+    const p = {
+      ...(field.dropdownParams || {}),
+    };
+
+    if (debouncedSearch) {
+      p.search = debouncedSearch;
+    }
+
+    return p;
+  }, [field.dropdownParams, debouncedSearch]);
+
+  const { data = [] } = useQuery({
+    queryKey: [
+      "supplier-dropdown",
+      debouncedSearch,
+    ],
+
+    queryFn: () =>
+      api.get(`/${field.api}/dropdown`, { params }).then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : d.results || [];
+      }),
+  });
+
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field: f }) => (
+        <FormItem>
+          <FormLabel>{field.label}</FormLabel>
+
+          <div className="relative">
+            <Input
+              placeholder="Search Vendor"
+              value={search || f.value || ""}
+              disabled={disabled || field.disabled}
+              onChange={(e) => {
+                setSearch(e.target.value);
+
+                if (f.value) {
+                  f.onChange("");
+                }
+              }}
+            />
+
+            {search && data.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md max-h-60 overflow-auto">
+                {data.map((item) => {
+                  const displayValue =
+                    `${item.vendor_name} (${item.vendor_code})`;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="cursor-pointer px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                      onClick={() => {
+                        f.onChange(displayValue);
+                        setSearch(displayValue);
+                      }}
+                    >
+                      {displayValue}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values}) {
+
+  const [downloadingUrl, setDownloadingUrl] = useState(null);
+
+  const { data: tdsRateOptions = [] } =
+    useTdsRateOptions();
 
   const handleButtonClick = (action) => {
     switch (action) {
@@ -148,10 +390,58 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         const name = fieldName(sectionKey, field.key);
         const colSpan = field.type === "textarea" ? "md:col-span-2 lg:col-span-4" : "";
 
+        if (field.type === "tds_rate") {
+          return (
+            <div key={field.key} className={colSpan}>
+              <FormField
+                control={control}
+                name={name}
+                render={({ field: f }) => (
+                  <FormItem>
+                    <FormLabel>TDS Rate (%)</FormLabel>
+
+                    <Input
+                      type="number"
+                      list="tds-rate-options"
+                      value={f.value ?? ""}
+                      onChange={(e) => f.onChange(e.target.value)}
+                      placeholder="Enter or Select TDS Rate"
+                    />
+
+                    <datalist id="tds-rate-options">
+                      {tdsRateOptions.map((item) => (
+                        <option
+                          key={item.id}
+                          value={item.tds_rate}
+                        />
+                      ))}
+                    </datalist>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          );
+        }
+
         if (field.type === "fk") {
           return (
             <div key={field.key} className={colSpan}>
-              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} />
+              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} />
+            </div>
+          );
+        }
+
+        if (field.type === "supplier_search") {
+          return (
+            <div key={field.key} className={colSpan}>
+              <SupplierSearchField
+                control={control}
+                name={name}
+                field={field}
+                disabled={disabled || field.disabled}
+              />
             </div>
           );
         }
@@ -299,11 +589,33 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                         <div className="mb-1">
                           <a
                             href={current}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-primary underline"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              if (downloadingUrl) return;
+                              setDownloadingUrl(current);
+                              try {
+                                await downloadFileWithDialog(current);
+                              } catch (err) {
+                                if (err.name !== "AbortError") {
+                                  console.error("Download failed:", err);
+                                  toast.error("Download failed. Please try again or save the file directly.");
+                                }
+                              } finally {
+                                setDownloadingUrl((prev) =>
+                                  prev === current ? null : prev
+                                );
+                              }
+                            }}
+                            className="text-xs text-primary underline cursor-pointer inline-flex items-center gap-1"
                           >
-                            View current file
+                            {downloadingUrl === current ? (
+                              <>
+                                <Spinner className="h-3 w-3" />
+                                Downloading...
+                              </>
+                            ) : (
+                              "Download current file"
+                            )}
                           </a>
                         </div>
                       )}

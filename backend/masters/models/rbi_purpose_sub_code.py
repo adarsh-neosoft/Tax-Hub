@@ -52,7 +52,7 @@ class RBIPurposeSubCode(BaseModel):
         ],
 
         "include_related_field_values": [
-            "rbi_purpose_code",
+            "rbi_purpose_code.rbi_purpose_code",
         ],
     }
 

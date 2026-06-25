@@ -46,11 +46,36 @@ RELATED_NAMES = {
     "approved": "approved_stage",
 }
 
-from tax_requests.constants import STAGE_FILE_FIELDS
+from tax_requests.constants import FILE_VALIDITY_MAP, STAGE_FILE_FIELDS
 from tax_requests.remittance_service import sync_remittance_report
 from tax_requests.workflow_permissions import FK_FIELDS, can_user_act_on_tds_opinion
 
 FILE_FIELDS = STAGE_FILE_FIELDS
+
+
+def copy_master_files_from_existing(target, source_id, file_fields):
+    """Copy specified file fields and their valid_upto from an existing TDSOpinion."""
+    from django.core.files import File
+
+    try:
+        source = TDSOpinion.objects.get(id=source_id, is_deleted=False)
+    except TDSOpinion.DoesNotExist:
+        return
+
+    for field_name in file_fields:
+        source_file = getattr(source, field_name, None)
+        if source_file:
+            getattr(target, field_name).save(
+                source_file.name,
+                File(source_file),
+                save=False
+            )
+            # Also copy the corresponding valid_upto if it exists
+            valid_field = FILE_VALIDITY_MAP.get(field_name)
+            if valid_field:
+                valid_value = getattr(source, valid_field, None)
+                if valid_value is not None:
+                    setattr(target, valid_field, valid_value)
 
 
 def _file_field_url(value):
@@ -422,6 +447,15 @@ def create_tds_opinion_with_form(user, payload, files=None):
     record.save()
     print("record.id:", record.id)
     print("record.pk:", record.pk)
+
+    # Copy files from existing request if specified
+    master_payload = payload.get("master", {})
+    copy_from = master_payload.get("_copy_files_from")
+    copy_fields = master_payload.get("_copy_file_fields", [])
+    if copy_from and copy_fields:
+        copy_master_files_from_existing(record, copy_from, copy_fields)
+        record.save()
+
     workflow = _get_tds_opinion_workflow()
     if workflow:
         start_workflow(record, user, workflow=workflow)

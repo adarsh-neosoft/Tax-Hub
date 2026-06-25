@@ -21,6 +21,11 @@ class CurrencyRate(BaseModel):
         default=True
     )
 
+    model_config = {
+        "encrypted_fields": [],
+        "exclude_from_audit_log": [],
+    }
+
     api_config = {
         "search_fields": [
             "currency__currency_name",

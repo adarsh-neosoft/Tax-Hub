@@ -17,6 +17,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog.tsx";
 import { useUiConfig } from "@/utils/use-ui-config.js";
 
 import { MASTER_FIELDS, STAGE_FIELD_CONFIG, ALL_SECTION_FIELDS } from "./tds-opinion/fieldConfig";
@@ -111,6 +119,7 @@ export default function TDSOpinionFormPage() {
   });
 
   const bankIfscCode = form.watch("bank_detail.bank_ifsc_code");
+  const form146Type = form.watch("bank_detail.form_146_type");
 
   const invoiceValueFc = form.watch("tds_opinion_stage.invoice_value_fc");
   const assesseableValueFc = form.watch("tds_opinion_stage.assesseable_value_fc");
@@ -120,6 +129,14 @@ export default function TDSOpinionFormPage() {
   const poNpo = form.watch("master.po_npo");
   const particular = form.watch("master.particular");
   const [particularOptions, setParticularOptions] = useState([]);
+  const company = form.watch("master.company");
+  const vendor = form.watch("master.vendor");
+
+  const [existingRequestData, setExistingRequestData] = useState(null);
+  const [showVendorNoteDialog, setShowVendorNoteDialog] = useState(false);
+  const [validFileUrls, setValidFileUrls] = useState({});
+  const [copyFileFields, setCopyFileFields] = useState([]);
+  const invoiceDate = form.watch("master.invoice_date");
 
   useEffect(() => {
     const subscription = form.watch((values, info) => {
@@ -127,6 +144,91 @@ export default function TDSOpinionFormPage() {
 
     return () => subscription.unsubscribe();
   }, [form]);
+
+  useEffect(() => {
+    if (!company || !vendor || isEdit) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(
+          `/tax_requests/tdsopinion/check-existing/`,
+          {
+            params: {
+              company,
+              vendor,
+            },
+          }
+        );
+
+        if (res.data?.exists) {
+          setExistingRequestData(res.data);
+          setShowVendorNoteDialog(true);
+
+          if (res.data.pan_number) {
+            form.setValue(
+              "master.pan_number",
+              res.data.pan_number
+            );
+          }
+
+          if (res.data.tin_number) {
+            form.setValue(
+              "master.tin_number",
+              res.data.tin_number
+            );
+          }
+        } else {
+          setExistingRequestData(null);
+          setValidFileUrls({});
+          setCopyFileFields([]);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [company, vendor]);
+
+  // When invoice_date changes, fetch valid files from the existing request
+  useEffect(() => {
+    if (!existingRequestData?.request_id || !invoiceDate || isEdit) {
+      if (!existingRequestData) {
+        setValidFileUrls({});
+        setCopyFileFields([]);
+      }
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(
+          `/tax_requests/tdsopinion/check-existing/`,
+          {
+            params: {
+              company,
+              vendor,
+              invoice_date: invoiceDate,
+            },
+          }
+        );
+
+        if (res.data?.valid_files) {
+          setValidFileUrls(res.data.valid_files);
+          setCopyFileFields(res.data.valid_file_fields || []);
+        } else {
+          setValidFileUrls({});
+          setCopyFileFields([]);
+        }
+      } catch (e) {
+        console.error(e);
+        setValidFileUrls({});
+        setCopyFileFields([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [invoiceDate, existingRequestData, company, vendor, isEdit]);
 
   useEffect(() => {
     const invoiceFc = parseFloat(invoiceValueFc || 0);
@@ -274,10 +376,27 @@ export default function TDSOpinionFormPage() {
     fetchParticulars();
   }, []);
 
+  const { data: form146TypeData } = useQuery({
+    queryKey: ["type15cb", form146Type],
+    enabled: !!form146Type,
+    queryFn: async () => {
+      const response = await api.get(
+        `/masters/type15cb/${form146Type}/`
+      );
+
+      return response.data;
+    },
+  });
+
   const formQuery = useQuery({
     queryKey: ["tds-workflow-form", id],
-    queryFn: () => api.get(`/tax_requests/tdsopinion/${id}/workflow-form/`).then((r) => r.data),
+    queryFn: () =>
+      api.get(`/tax_requests/tdsopinion/${id}/workflow-form/`)
+        .then((r) => r.data),
     enabled: isEdit,
+
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   useEffect(() => {
@@ -311,6 +430,13 @@ export default function TDSOpinionFormPage() {
       const payload = {
         [sectionKey]: buildSectionPayload(values, sectionKey, fields),
       };
+
+      // If creating a new form and we have files to copy from an existing request
+      if (!isEdit && sectionKey === "master" && existingRequestData?.request_id && copyFileFields.length > 0) {
+        payload[sectionKey]._copy_files_from = existingRequestData.request_id;
+        payload[sectionKey]._copy_file_fields = copyFileFields;
+      }
+
       const files = collectFiles(values);
       const scopedFiles = Object.entries(files).filter(
         ([k]) => !sectionKey || k.startsWith(`${sectionKey}.`),
@@ -391,6 +517,37 @@ export default function TDSOpinionFormPage() {
       form.reset(sectionFormDefaults(MASTER_FIELDS, "master"));
     }
   };
+
+  const notesData = [
+    {
+      particular: "Electronically filed form 10F",
+      details:
+        "It is auto generated form which can be downloaded by vendor via login on Income Tax portal; Sample Format Attached.",
+    },
+    {
+      particular: "No PE declaration",
+      details:
+        "No PE Declaration is a certificate provided by a non-resident on his letterhead stating that he doesn't have any permanent establishment in INDIA. PE here broadly covers project PE, service PE, branch PE etc.",
+    },
+    {
+      particular: "Tax Residency Certificate",
+      details:
+        "TRC is a document/certification issued by the tax authorities of the country of the person, confirming that such person is a resident of such country in that particular financial year. In brevity, TRC is proof of residency.",
+    },
+    {
+      particular: "PAN",
+      details: "This document is mandatory if the non-resident obtains PAN in INDIA",
+    },
+    {
+      particular: "Form 145 and Form 146 both not required",
+      details: "Goods of Supply;",
+    },
+    {
+      particular: "Only Form 145 Required (Form 146 not required)",
+      details:
+        "LDC-Part-B: 2. Reimbursement-Part-D; 3. Any Other Income not taxable under Income tax act-Part-D.",
+    },
+  ];
 
   const title = isEdit ? "TDS Opinion" : "Create TDS Opinion";
   const isLoading = isEdit && formQuery.isPending;
@@ -575,8 +732,9 @@ export default function TDSOpinionFormPage() {
                       )
                 }
                 disabled={false}
-                fileUrls={{}}
+                fileUrls={validFileUrls}
                 requestId={id}
+                values={form.watch()}
               />
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button type="button" variant="ghost" onClick={handleClear} disabled={saveMutation.isPending}>
@@ -619,15 +777,35 @@ export default function TDSOpinionFormPage() {
                             control={form.control}
                             sectionKey={section.key}
                             fields={
-                              section.key === "master" && !poNpo
-                                ? fields.filter(
-                                    (field) => field.key !== "po_number"
-                                  )
-                                : fields
+                              section.key === "bank_detail"
+                                ? fields.filter((field) => {
+                                    const selectedType = (
+                                      form146TypeData?.type_15cb || ""
+                                    ).toLowerCase();
+
+                                    const showExternalCA =
+                                      selectedType.includes("146") &&
+                                      selectedType.includes("part c");
+
+                                    if (
+                                      field.key === "external_ca" &&
+                                      !showExternalCA
+                                    ) {
+                                      return false;
+                                    }
+
+                                    return true;
+                                  })
+                                : section.key === "master" && !poNpo
+                                  ? fields.filter(
+                                      (field) => field.key !== "po_number"
+                                    )
+                                  : fields
                             }
                             disabled={!editable}
                             fileUrls={fileUrls}
                             requestId={id}
+                            values={form.watch()}
                           />
                           {editable && (
                             <div className="flex justify-end gap-2 pt-4 border-t">
@@ -662,6 +840,72 @@ export default function TDSOpinionFormPage() {
           <AuditTrail appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
         </>
       )}
+
+      <Dialog open={showVendorNoteDialog} onOpenChange={setShowVendorNoteDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Note</DialogTitle>
+            <DialogDescription>
+              {existingRequestData && (
+                <div className="bg-muted/50 rounded-md p-3 mb-4 text-sm space-y-1">
+                  <p>
+                    <span className="font-semibold">Request ID:</span>{" "}
+                    {existingRequestData.request_id}
+                  </p>
+                  {existingRequestData.pan_number && (
+                    <p>
+                      <span className="font-semibold">Existing PAN Number:</span>{" "}
+                      {existingRequestData.pan_number}
+                    </p>
+                  )}
+                  {existingRequestData.tin_number && (
+                    <p>
+                      <span className="font-semibold">Existing TIN Number:</span>{" "}
+                      {existingRequestData.tin_number}
+                    </p>
+                  )}
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="border px-3 py-2 text-left font-semibold w-1/3">
+                    Particulars
+                  </th>
+                  <th className="border px-3 py-2 text-left font-semibold">
+                    Details
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {notesData.map((row, idx) => (
+                  <tr key={idx} className="border-b">
+                    <td className="border px-3 py-2.5 font-medium text-muted-foreground align-top">
+                      {row.particular}
+                    </td>
+                    <td className="border px-3 py-2.5 text-muted-foreground">
+                      {row.details}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setShowVendorNoteDialog(false)}
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
