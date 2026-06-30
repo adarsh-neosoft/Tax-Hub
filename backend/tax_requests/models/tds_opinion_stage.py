@@ -45,7 +45,12 @@ class TDSOpinionStage(models.Model):
     assesseable_value_inr = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
     tds_section = models.CharField(max_length=50, null=True, blank=True, verbose_name="TDS Section")
     tax_rate = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="TDS Rate (%)")
-    ldc_certificate = models.CharField(max_length=255, null=True, blank=True)
+    ldc_certificate = models.ForeignKey(
+        "masters.LDCCertificate",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     form_146_type = models.ForeignKey(
         "masters.Type15CB",
         on_delete=models.PROTECT,

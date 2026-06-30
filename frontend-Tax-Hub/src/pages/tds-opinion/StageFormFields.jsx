@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "iron-stack-ui";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
+import { useWatch } from "react-hook-form";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -277,6 +278,14 @@ function FkFormField({ control, name, field, disabled, formValues }) {
 // }
 function SupplierSearchField({ control, name, field, disabled }) {
   const [search, setSearch] = useState("");
+  const formValue = useWatch({ control, name });
+
+  // Sync internal search state when form is cleared externally (e.g., Clear button)
+  useEffect(() => {
+    if (!formValue) {
+      setSearch("");
+    }
+  }, [formValue]);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -357,7 +366,7 @@ function SupplierSearchField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values}) {
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = []}) {
 
   const [downloadingUrl, setDownloadingUrl] = useState(null);
 
@@ -569,6 +578,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
 
         if (field.type === "file") {
           const current = fileUrls[field.key];
+          const isCopiedFromExisting = current && onRemoveCopiedFile && copiedFileFields.includes(field.key);
           return (
             <div key={field.key} className={colSpan}>
               <FormField
@@ -586,7 +596,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                       </FormLabel>
 
                       {current && (
-                        <div className="mb-1">
+                        <div className="mb-1 flex items-center gap-2">
                           <a
                             href={current}
                             onClick={async (e) => {
@@ -617,6 +627,16 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                               "Download current file"
                             )}
                           </a>
+                          {isCopiedFromExisting && (
+                            <button
+                              type="button"
+                              onClick={() => onRemoveCopiedFile(field.key)}
+                              className="text-destructive hover:text-destructive/80 transition-colors"
+                              title="Remove this pre-populated file"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       )}
                       <FormControl>
@@ -627,9 +647,13 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                           disabled={disabled || field.disabled}
                           aria-invalid={hasError}
                           onBlur={f.onBlur}
-                          onChange={(e) =>
-                            f.onChange(e.target.files?.[0] ?? null)
-                          }
+                          onChange={(e) => {
+                            // If user uploads a new file for a pre-populated field, remove it from copy list
+                            if (e.target.files?.[0] && isCopiedFromExisting) {
+                              onRemoveCopiedFile(field.key);
+                            }
+                            f.onChange(e.target.files?.[0] ?? null);
+                          }}
                         />
                       </FormControl>
 

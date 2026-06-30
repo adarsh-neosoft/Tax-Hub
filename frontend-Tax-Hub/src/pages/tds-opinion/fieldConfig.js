@@ -104,7 +104,13 @@ export const STAGE_FIELD_CONFIG = {
       label: "TDS Rate (%)",
       type: "tds_rate",
     },
-    { key: "ldc_certificate", label: "LDC Certificate", type: "text" },
+    {
+      key: "ldc_certificate",
+      label: "LDC Certificate",
+      type: "fk",
+      api: "masters/LDCCertificate",
+      labelFields: ["certificate_number"],
+    },
     {
       key: "form_146_type",
       label: "Form 146 - Type",

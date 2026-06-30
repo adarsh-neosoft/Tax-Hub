@@ -134,4 +134,14 @@ class CheckExistingVendorRequestView(APIView):
                 response_data["valid_files"] = valid_files
                 response_data["valid_file_fields"] = list(valid_files.keys())
 
+                # Return corresponding valid_upto dates for each valid file
+                valid_file_upto_dates = {}
+                for file_field in valid_files:
+                    if file_field in FILE_VALIDITY_MAP:
+                        valid_field = FILE_VALIDITY_MAP[file_field]
+                        valid_upto = getattr(existing, valid_field, None)
+                        if valid_upto:
+                            valid_file_upto_dates[file_field] = valid_upto.isoformat()
+                response_data["valid_file_upto_dates"] = valid_file_upto_dates
+
         return Response(response_data)

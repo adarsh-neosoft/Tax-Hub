@@ -49,6 +49,16 @@ const DEFAULT_STAGES = [
   "Approved",
 ];
 
+// Mapping of master file fields to their corresponding valid_upto date fields
+const FILE_VALIDITY_MAP = {
+  form_10f_file: "form_10f_valid_upto",
+  trc_file: "trc_valid_upto",
+  contract_agreement_copy: "agreement_valid_upto",
+  pan_file: "pan_valid_upto",
+  no_pe_declaration_file: "no_pe_valid_upto",
+  proof_of_reimbursement_file: "reimbursement_valid_upto",
+};
+
 const DEFAULT_ACCORDION = [
   { stage: "Close Request", key: "close_request", title: "Close Request" },
   { stage: "Payment Details", key: "payment_detail", title: "Payment Details" },
@@ -136,6 +146,7 @@ export default function TDSOpinionFormPage() {
   const [showVendorNoteDialog, setShowVendorNoteDialog] = useState(false);
   const [validFileUrls, setValidFileUrls] = useState({});
   const [copyFileFields, setCopyFileFields] = useState([]);
+  const [removedFileFields, setRemovedFileFields] = useState(new Set());
   const invoiceDate = form.watch("master.invoice_date");
 
   useEffect(() => {
@@ -190,15 +201,48 @@ export default function TDSOpinionFormPage() {
     return () => clearTimeout(timer);
   }, [company, vendor]);
 
+  // Filter out removed files from the pre-populated URLs
+  const filteredFileUrls = useMemo(() => {
+    const filtered = {};
+    for (const [key, url] of Object.entries(validFileUrls)) {
+      if (!removedFileFields.has(key)) {
+        filtered[key] = url;
+      }
+    }
+    return filtered;
+  }, [validFileUrls, removedFileFields]);
+
+  const handleRemoveCopiedFile = useCallback((fieldKey) => {
+    setRemovedFileFields(prev => {
+      const next = new Set(prev);
+      next.add(fieldKey);
+      return next;
+    });
+    // Also clear the corresponding valid_upto date field
+    const uptoField = FILE_VALIDITY_MAP[fieldKey];
+    if (uptoField) {
+      form.setValue(`master.${uptoField}`, "");
+    }
+  }, [form]);
+
+  // Fields that are actively being copied (not removed by user)
+  const activeCopyFields = useMemo(
+    () => copyFileFields.filter(f => !removedFileFields.has(f)),
+    [copyFileFields, removedFileFields]
+  );
+
   // When invoice_date changes, fetch valid files from the existing request
   useEffect(() => {
     if (!existingRequestData?.request_id || !invoiceDate || isEdit) {
       if (!existingRequestData) {
         setValidFileUrls({});
         setCopyFileFields([]);
+        setRemovedFileFields(new Set());
       }
       return;
     }
+
+    setRemovedFileFields(new Set());
 
     const timer = setTimeout(async () => {
       try {
@@ -216,6 +260,15 @@ export default function TDSOpinionFormPage() {
         if (res.data?.valid_files) {
           setValidFileUrls(res.data.valid_files);
           setCopyFileFields(res.data.valid_file_fields || []);
+
+          // Populate the corresponding valid_upto date fields from the existing request
+          const uptoDates = res.data.valid_file_upto_dates || {};
+          Object.entries(uptoDates).forEach(([fileField, dateValue]) => {
+            const uptoField = FILE_VALIDITY_MAP[fileField];
+            if (uptoField && dateValue) {
+              form.setValue(`master.${uptoField}`, dateValue);
+            }
+          });
         } else {
           setValidFileUrls({});
           setCopyFileFields([]);
@@ -432,9 +485,9 @@ export default function TDSOpinionFormPage() {
       };
 
       // If creating a new form and we have files to copy from an existing request
-      if (!isEdit && sectionKey === "master" && existingRequestData?.request_id && copyFileFields.length > 0) {
+      if (!isEdit && sectionKey === "master" && existingRequestData?.request_id && activeCopyFields.length > 0) {
         payload[sectionKey]._copy_files_from = existingRequestData.request_id;
-        payload[sectionKey]._copy_file_fields = copyFileFields;
+        payload[sectionKey]._copy_file_fields = activeCopyFields;
       }
 
       const files = collectFiles(values);
@@ -583,8 +636,11 @@ export default function TDSOpinionFormPage() {
       .trim()
       .toLowerCase();
 
+    // Helper: check if a field has a file being copied from existing request
+    const hasCopiedFile = (fieldKey) => activeCopyFields.includes(fieldKey);
+
     if (particularName === "supply of goods") {
-      if (!master.no_pe_declaration_file) {
+      if (!master.no_pe_declaration_file && !hasCopiedFile("no_pe_declaration_file")) {
         form.setError("master.no_pe_declaration_file", {
           type: "required",
           message: "No PE Declaration is required",
@@ -595,7 +651,7 @@ export default function TDSOpinionFormPage() {
     }
 
     if (particularName === "supply of services") {
-      if (!master.form_10f_file) {
+      if (!master.form_10f_file && !hasCopiedFile("form_10f_file")) {
         form.setError("master.form_10f_file", {
           type: "required",
           message: "Form 10F is required",
@@ -604,7 +660,7 @@ export default function TDSOpinionFormPage() {
         errors.push("Form 10F is required");
       }
 
-      if (!master.no_pe_declaration_file) {
+      if (!master.no_pe_declaration_file && !hasCopiedFile("no_pe_declaration_file")) {
         form.setError("master.no_pe_declaration_file", {
           type: "required",
           message: "No PE Declaration is required",
@@ -613,7 +669,7 @@ export default function TDSOpinionFormPage() {
         errors.push("No PE Declaration is required");
       }
 
-      if (!master.trc_file) {
+      if (!master.trc_file && !hasCopiedFile("trc_file")) {
         form.setError("master.trc_file", {
           type: "required",
           message: "TRC file is required",
@@ -622,7 +678,7 @@ export default function TDSOpinionFormPage() {
         errors.push("TRC file is required");
       }
 
-      if (!master.contract_agreement_copy) {
+      if (!master.contract_agreement_copy && !hasCopiedFile("contract_agreement_copy")) {
         form.setError("master.contract_agreement_copy", {
           type: "required",
           message: "Contract Agreement Copy is required",
@@ -636,7 +692,7 @@ export default function TDSOpinionFormPage() {
       particularName.includes("pure reimbursement") ||
       particularName.includes("any other income")
     ) {
-      if (!master.proof_of_reimbursement_file) {
+      if (!master.proof_of_reimbursement_file && !hasCopiedFile("proof_of_reimbursement_file")) {
         form.setError("master.proof_of_reimbursement_file", {
           type: "required",
           message: "Proof of reimbursement claims is required",
@@ -732,9 +788,11 @@ export default function TDSOpinionFormPage() {
                       )
                 }
                 disabled={false}
-                fileUrls={validFileUrls}
+                fileUrls={filteredFileUrls}
                 requestId={id}
                 values={form.watch()}
+                onRemoveCopiedFile={handleRemoveCopiedFile}
+                copiedFileFields={copyFileFields}
               />
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button type="button" variant="ghost" onClick={handleClear} disabled={saveMutation.isPending}>

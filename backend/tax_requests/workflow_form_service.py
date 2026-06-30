@@ -422,10 +422,12 @@ def create_tds_opinion_with_form(user, payload, files=None):
                 "proof_of_reimbursement_file",
             ]
 
+    # Account for files that will be copied from an existing request
+    copy_fields = (master_data or {}).get("_copy_file_fields", [])
     missing = [
         field
         for field in required_files
-        if field not in master_files
+        if field not in master_files and field not in copy_fields
     ]
 
     if missing:
