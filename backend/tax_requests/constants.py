@@ -117,7 +117,9 @@ STAGE_MODEL_FIELDS = {
     ],
     "form_146": [
         "remarks",
+        "download_form_146",
         "form_146_attachment",
+        "download_form_146_comparison",
         "comparison_status",
         "ack_number",
         "ack_date",
@@ -164,7 +166,64 @@ STAGE_FILE_FIELDS = {
         "proof_of_reimbursement_file",
     ],
     "tds_opinion_stage": ["external_document"],
-    "form_146": ["form_146_attachment"],
+    "form_146": ["download_form_146", "form_146_attachment", "download_form_146_comparison"],
     "form_145": ["form_ca_file"],
     "payment_detail": ["payment_bank_documents"],
+}
+
+
+# ==========================================
+# Form146 Excel Template Cell Mapping
+# Using pandas 0-indexed row numbers (column C = index 2)
+# Excel row X = pandas row X-1
+# ==========================================
+
+FORM146_CELL_MAPPING = {
+
+    # Remitter
+    "company_name": 2,      # Excel row 3
+    "company_pan": 3,       # Excel row 4
+    "company_tan": 4,       # Excel row 5
+
+    # Beneficiary
+    "vendor_name": 5,       # Excel row 6
+    "vendor_address": 6,    # Excel row 7
+    "vendor_country": 7,    # Excel row 8
+
+    # Currency
+    "currency": 8,          # Excel row 9
+
+    # Amount (Amount Payable)
+    "invoice_fc": 10,       # Excel row 11 - In foreign currency
+    "invoice_inr": 11,      # Excel row 12 - In INR
+
+    # Bank
+    "ifsc": 12,             # Excel row 13
+    "bank_name": 13,        # Excel row 14
+    "branch": 14,           # Excel row 15
+    "bsr": 15,              # Excel row 16
+    "remittance_date": 16,  # Excel row 17
+
+    # Nature
+    "nature_of_service": 17, # Excel row 18
+    "rbi_purpose_code": 18,  # Excel row 19
+
+    "grossing_up": 19,       # Excel row 20
+
+    "taxable_india": 21,     # Excel row 22
+
+    "tds_section": 23,       # Excel row 24
+
+    "income_amount": 24,     # Excel row 25 - (b) amount of income chargeable to tax
+    "tax_liability": 25,     # Excel row 26 - (c) the tax liability
+
+    # TDS Amount
+    "tds_fc": 42,            # Excel row 43 - In foreign currency
+    "tds_inr": 43,           # Excel row 44 - In INR
+
+    "tds_rate": 44,          # Excel row 45 - Rate of TDS
+
+    "it_or_dtaa": 45,         # Excel row 46 - As per income tax act (%) or as per DTAA (%)
+
+    "net_payable": 46,       # Excel row 47 - Actual amount of remittance after TDS
 }

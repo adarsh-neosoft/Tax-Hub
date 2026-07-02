@@ -8,11 +8,23 @@ class Form146Stage(models.Model):
         related_name="form_146",
     )
     remarks = models.TextField(null=True, blank=True, verbose_name="Remarks, if any")
+    download_form_146 = models.FileField(
+        upload_to="tds_opinion/generated_form146/",
+        null=True,
+        blank=True,
+        verbose_name="Download Form 146",
+    )
     form_146_attachment = models.FileField(
         upload_to="tds_opinion/form146/",
         null=True,
         blank=True,
         verbose_name="Form 146",
+    )
+    download_form_146_comparison = models.FileField(
+        upload_to="tds_opinion/form146_comparison/",
+        null=True,
+        blank=True,
+        verbose_name="Download Form 146 Comparison",
     )
     comparison_status = models.CharField(
         max_length=50,

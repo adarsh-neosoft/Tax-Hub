@@ -9,6 +9,9 @@ from rest_framework.views import APIView
 
 from tax_requests.constants import FILE_VALIDITY_MAP
 from tax_requests.models import TDSOpinion
+from django.http import FileResponse
+
+from tax_requests.services.form146_excel_generator import (Form146ExcelGenerator,)
 from rest_framework.permissions import IsAuthenticated
 from tax_requests.workflow_form_service import (
     build_workflow_form_payload,
@@ -145,3 +148,53 @@ class CheckExistingVendorRequestView(APIView):
                 response_data["valid_file_upto_dates"] = valid_file_upto_dates
 
         return Response(response_data)
+    
+
+class DownloadForm146View(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+
+        opinion = get_object_or_404(
+            TDSOpinion,
+            pk=pk,
+            is_deleted=False,
+        )
+
+        generator = Form146ExcelGenerator(opinion)
+
+        file_path = generator.generate()
+
+        return FileResponse(
+            open(file_path, "rb"),
+            as_attachment=True,
+            filename=file_path.name,
+        )
+
+
+class DownloadForm146ComparisonView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+
+        opinion = get_object_or_404(
+            TDSOpinion,
+            pk=pk,
+            is_deleted=False,
+        )
+
+        generator = Form146ExcelGenerator(opinion)
+
+        file_path = generator.generate()
+
+        comparison_filename = file_path.name.replace(
+            "FORM146_", "FORM146_Comparison_"
+        )
+
+        return FileResponse(
+            open(file_path, "rb"),
+            as_attachment=True,
+            filename=comparison_filename,
+        )

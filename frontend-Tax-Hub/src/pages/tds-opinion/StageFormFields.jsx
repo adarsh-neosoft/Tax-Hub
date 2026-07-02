@@ -60,16 +60,34 @@ function getFilenameFromUrl(url) {
   return parts[parts.length - 1] || "download";
 }
 
-async function downloadFileWithDialog(url) {
-  const filename = getFilenameFromUrl(url);
+async function downloadFileWithDialog(url, options = {}) {
+  const filename = options.suggestedName || getFilenameFromUrl(url);
+
+  // Build headers: include auth Bearer token for non-media URLs
+  const headers = { ...(options.headers || {}) };
+  if (!url.startsWith("/media/")) {
+    const token = localStorage.getItem("token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
 
   // Try the modern File System Access API (shows native Save As dialog)
   if ("showSaveFilePicker" in window) {
+    // Detect file type from extension to set the correct MIME filter
+    const ext = filename.includes(".") ? `.${filename.split(".").pop()}` : "";
+    const fileTypes = ext ? [{
+      description: ext === ".xlsx" ? "Excel Workbook" : `${ext.toUpperCase()} File`,
+      accept: { "application/octet-stream": [ext] },
+    }] : [];
+
     const handle = await window.showSaveFilePicker({
       suggestedName: filename,
+      types: fileTypes,
+      excludeAcceptAllOption: true,
     });
     const writable = await handle.createWritable();
-    const response = await fetch(url);
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`Server returned ${response.status} ${response.statusText}`);
     }
@@ -373,24 +391,31 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
   const { data: tdsRateOptions = [] } =
     useTdsRateOptions();
 
-  const handleButtonClick = (action) => {
+  const handleButtonClick = async (action) => {
+    let url;
+    let suggestedName;
     switch (action) {
       case "download_form_146":
-        window.open(
-          `/api/tax_requests/tdsopinion/${requestId}/download-form146/`,
-          "_blank"
-        );
+        url = `/api/tax_requests/tdsopinion/${requestId}/download-form146/`;
+        suggestedName = `FORM146_${requestId}.xlsx`;
         break;
 
       case "download_form_146_comparison":
-        window.open(
-          `/api/tax_requests/tdsopinion/${requestId}/download-form146-comparison/`,
-          "_blank"
-        );
+        url = `/api/tax_requests/tdsopinion/${requestId}/download-form146-comparison/`;
+        suggestedName = `FORM146_Comparison_${requestId}.xlsx`;
         break;
 
       default:
-        break;
+        return;
+    }
+
+    try {
+      await downloadFileWithDialog(url, { suggestedName });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Download failed:", err);
+        toast.error("Download failed. Please try again or save the file directly.");
+      }
     }
   };
   return (
