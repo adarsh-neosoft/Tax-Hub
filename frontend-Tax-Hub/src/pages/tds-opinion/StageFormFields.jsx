@@ -384,7 +384,7 @@ function SupplierSearchField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = []}) {
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = [], onComparisonComplete}) {
 
   const [downloadingUrl, setDownloadingUrl] = useState(null);
 
@@ -401,6 +401,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         break;
 
       case "download_form_146_comparison":
+        // POST to generate comparison, then download the result
         url = `/api/tax_requests/tdsopinion/${requestId}/download-form146-comparison/`;
         suggestedName = `FORM146_Comparison_${requestId}.xlsx`;
         break;
@@ -410,11 +411,63 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
     }
 
     try {
-      await downloadFileWithDialog(url, { suggestedName });
+      if (action === "download_form_146_comparison") {
+        // POST to trigger comparison generation
+        const token = localStorage.getItem("token");
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(
+            errorData?.detail ||
+            `Server returned ${response.status} ${response.statusText}`
+          );
+        }
+
+        // Download the blob from the response
+        const blob = await response.blob();
+
+        // Use showSaveFilePicker to save
+        if ("showSaveFilePicker" in window) {
+          const ext = ".xlsx";
+          const handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: [{
+              description: "Excel Workbook",
+              accept: { "application/octet-stream": [ext] },
+            }],
+            excludeAcceptAllOption: true,
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } else {
+          // Fallback
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = suggestedName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }
+
+        // Notify parent to refresh form data (to show updated comparison_status)
+        if (onComparisonComplete) {
+          onComparisonComplete();
+        }
+      } else {
+        await downloadFileWithDialog(url, { suggestedName });
+      }
     } catch (err) {
       if (err.name !== "AbortError") {
         console.error("Download failed:", err);
-        toast.error("Download failed. Please try again or save the file directly.");
+        toast.error(err.message || "Download failed. Please try again or save the file directly.");
       }
     }
   };
@@ -704,6 +757,84 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 Download
               </Button>
             </FormItem>
+          );
+        }
+
+        if (field.type === "status") {
+          return (
+            <div key={field.key} className={colSpan}>
+              <FormField
+                control={control}
+                name={name}
+                render={({ field: f }) => {
+                  const value = f.value;
+                  const isPass = value && value.toLowerCase() === "pass";
+                  return (
+                    <FormItem>
+                      <FormLabel>{field.label}</FormLabel>
+                      <div
+                        className={`w-full text-left text-base font-semibold ${
+                          isPass
+                            ? "text-green-600"
+                            : value
+                              ? "text-red-600"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {value || "—"}
+                      </div>
+                    </FormItem>
+                  );
+                }}
+              />
+            </div>
+          );
+        }
+
+        if (field.type === "file_link") {
+          const current = fileUrls[field.key];
+          return (
+            <div key={field.key} className={colSpan}>
+              <FormItem>
+                <FormLabel>{field.label}</FormLabel>
+                <div className="flex items-center gap-2">
+                  {current ? (
+                    <a
+                      href={current}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (downloadingUrl) return;
+                        setDownloadingUrl(current);
+                        try {
+                          await downloadFileWithDialog(current);
+                        } catch (err) {
+                          if (err.name !== "AbortError") {
+                            console.error("Download failed:", err);
+                            toast.error("Download failed. Please try again or save the file directly.");
+                          }
+                        } finally {
+                          setDownloadingUrl((prev) =>
+                            prev === current ? null : prev
+                          );
+                        }
+                      }}
+                      className="text-sm text-primary underline cursor-pointer inline-flex items-center gap-1"
+                    >
+                      {downloadingUrl === current ? (
+                        <>
+                          <Spinner className="h-3 w-3" />
+                          Downloading...
+                        </>
+                      ) : (
+                        "Download file"
+                      )}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </div>
+              </FormItem>
+            </div>
           );
         }
 

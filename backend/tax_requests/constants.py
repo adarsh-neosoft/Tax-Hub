@@ -132,7 +132,7 @@ STAGE_MODEL_FIELDS = {
         "ack_number",
         "posting_date",
         "bot_status",
-        "form_ca_file",
+        "form_145_file",
     ],
     "payment_detail": [
         "remarks",
@@ -167,7 +167,7 @@ STAGE_FILE_FIELDS = {
     ],
     "tds_opinion_stage": ["external_document"],
     "form_146": ["download_form_146", "form_146_attachment", "download_form_146_comparison"],
-    "form_145": ["form_ca_file"],
+    "form_145": ["form_145_file"],
     "payment_detail": ["payment_bank_documents"],
 }
 
@@ -226,4 +226,13 @@ FORM146_CELL_MAPPING = {
     "it_or_dtaa": 45,         # Excel row 46 - As per income tax act (%) or as per DTAA (%)
 
     "net_payable": 46,       # Excel row 47 - Actual amount of remittance after TDS
+
+    # DTAA section
+    "has_trc": 28,            # Excel row 29 - whether TRC is obtained
+    "dtaa_taxable_income": 32, # Excel row 33 - (iii) taxable income as per DTAA
+    "dtaa_tax_liability": 33,  # Excel row 34 - (iv) tax liability as per DTAA
+
+    # Other fields
+    "tds_deduction_date": 47, # Excel row 48 - Date of deduction of tax at source
+    "ttbr_rate": 48,          # Excel row 49 - SBI TTBR rate on date of filing Form 15CB
 }

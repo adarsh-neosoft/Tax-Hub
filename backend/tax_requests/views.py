@@ -1,5 +1,7 @@
 from datetime import datetime
+from io import BytesIO
 
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -8,10 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from tax_requests.constants import FILE_VALIDITY_MAP
-from tax_requests.models import TDSOpinion
+from tax_requests.models import TDSOpinion, Form146Stage
 from django.http import FileResponse
 
 from tax_requests.services.form146_excel_generator import (Form146ExcelGenerator,)
+from tax_requests.services.form146_comparison_service import generate_comparison_excel
 from rest_framework.permissions import IsAuthenticated
 from tax_requests.workflow_form_service import (
     build_workflow_form_payload,
@@ -176,8 +179,9 @@ class DownloadForm146View(APIView):
 class DownloadForm146ComparisonView(APIView):
 
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    def get(self, request, pk):
+    def post(self, request, pk):
 
         opinion = get_object_or_404(
             TDSOpinion,
@@ -185,16 +189,75 @@ class DownloadForm146ComparisonView(APIView):
             is_deleted=False,
         )
 
-        generator = Form146ExcelGenerator(opinion)
-
-        file_path = generator.generate()
-
-        comparison_filename = file_path.name.replace(
-            "FORM146_", "FORM146_Comparison_"
+        # Get or create the Form 146 stage (OneToOne relationship)
+        form_146_stage, _ = Form146Stage.objects.get_or_create(
+            tds_opinion=opinion
         )
 
+        if not form_146_stage.form_146_attachment:
+            return Response(
+                {
+                    "detail": "No Form 146 PDF uploaded yet. Please upload the PDF form in the 'Form 146' field and save, then try again."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = generate_comparison_excel(opinion, form_146_stage)
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": f"Comparison failed: {str(exc)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Save the comparison file to the stage
+        file_path = result["comparison_file_path"]
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+
+        form_146_stage.download_form_146_comparison.save(
+            result["filename"],
+            ContentFile(file_content),
+            save=False,
+        )
+        form_146_stage.comparison_status = result["status"]
+        if result["ack_number"]:
+            form_146_stage.ack_number = result["ack_number"]
+        form_146_stage.save()
+
         return FileResponse(
-            open(file_path, "rb"),
+            BytesIO(file_content),
             as_attachment=True,
-            filename=comparison_filename,
+            filename=result["filename"],
+        )
+
+    def get(self, request, pk):
+        """Return the previously generated comparison file, if available."""
+        opinion = get_object_or_404(
+            TDSOpinion,
+            pk=pk,
+            is_deleted=False,
+        )
+        form_146_stage = getattr(opinion, "form_146", None)
+
+        if (
+            form_146_stage
+            and form_146_stage.download_form_146_comparison
+            and form_146_stage.download_form_146_comparison.name
+        ):
+            return FileResponse(
+                form_146_stage.download_form_146_comparison,
+                as_attachment=True,
+            )
+
+        return Response(
+            {
+                "detail": "No comparison file available. Please upload the Form 146 PDF and click 'Download Form 146 Comparison'."
+            },
+            status=status.HTTP_404_NOT_FOUND,
         )

@@ -54,8 +54,8 @@ def sync_remittance_report(tds_opinion):
         defaults["trc_attachment"] = tds_opinion.trc_file
     if tds_opinion.no_pe_declaration_file:
         defaults["no_pe_attachment"] = tds_opinion.no_pe_declaration_file
-    if form145 and form145.form_ca_file:
-        defaults["form_145_attachment"] = form145.form_ca_file
+    if form145 and form145.form_145_file:
+        defaults["form_145_attachment"] = form145.form_145_file
     if form146 and form146.form_146_attachment:
         defaults["form_146_attachment"] = form146.form_146_attachment
 

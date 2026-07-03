@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -114,8 +114,29 @@ export default function TDSOpinionFormPage() {
 
   const isEdit = Boolean(id);
   const baseUrl = pathname.split("/").filter(Boolean)[0] || "tds-opinion";
-  const pageParam = searchParams.get("page");
-  const pageSizeParam = searchParams.get("pageSize");
+
+  // Store pagination params in a ref so they're preserved for back-navigation
+  // even after cleaning them from the URL
+  const paginationRef = useRef({
+    page: searchParams.get("page"),
+    pageSize: searchParams.get("pageSize"),
+  });
+
+  // Clean up /edit suffix and pagination query params from the URL
+  // without triggering a React Router re-render (which would lose form state)
+  useEffect(() => {
+    const cleanPath = pathname.replace(/\/edit$/, "");
+    const search = new URLSearchParams(searchParams);
+    const hadPage = search.has("page");
+    const hadPageSize = search.has("pageSize");
+    search.delete("page");
+    search.delete("pageSize");
+    const qs = search.toString();
+
+    if (cleanPath !== pathname || hadPage || hadPageSize) {
+      window.history.replaceState(null, "", `${cleanPath}${qs ? "?" + qs : ""}`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [nestedData, setNestedData] = useState({ master: {} });
   const [stages, setStages] = useState(DEFAULT_STAGES);
@@ -470,11 +491,12 @@ export default function TDSOpinionFormPage() {
 
   const navigateToList = useCallback(() => {
     const params = new URLSearchParams();
-    if (pageParam) params.set("page", pageParam);
-    if (pageSizeParam) params.set("pageSize", pageSizeParam);
+    const { page, pageSize } = paginationRef.current;
+    if (page) params.set("page", page);
+    if (pageSize) params.set("pageSize", pageSize);
     const qs = params.toString();
     navigate(`/${baseUrl}${qs ? "?" + qs : ""}`, { replace: true });
-  }, [navigate, baseUrl, pageParam, pageSizeParam]);
+  }, [navigate, baseUrl]);
 
   const saveMutation = useMutation({
     mutationFn: async ({ values, sectionKey }) => {
@@ -864,6 +886,9 @@ export default function TDSOpinionFormPage() {
                             fileUrls={fileUrls}
                             requestId={id}
                             values={form.watch()}
+                            onComparisonComplete={() => {
+                              queryClient.invalidateQueries({ queryKey: ["tds-workflow-form", id] });
+                            }}
                           />
                           {editable && (
                             <div className="flex justify-end gap-2 pt-4 border-t">

@@ -11,11 +11,11 @@ class Form145Stage(models.Model):
     ack_number = models.CharField(max_length=100, null=True, blank=True, verbose_name="Acknowledgement Number")
     posting_date = models.DateField(null=True, blank=True, verbose_name="Posting Date")
     bot_status = models.CharField(max_length=100, null=True, blank=True, verbose_name="Bot Status")
-    form_ca_file = models.FileField(
+    form_145_file = models.FileField(
         upload_to="tds_opinion/form145/",
         null=True,
         blank=True,
-        verbose_name="Form CA file",
+        verbose_name="Form 145 file",
     )
 
     class Meta:

@@ -192,7 +192,7 @@ export const STAGE_FIELD_CONFIG = {
       action: "download_form_146_comparison",
     },
     { key: "form_146_attachment", label: "Form 146", type: "file" },
-    { key: "comparison_status", label: "Form 146 Comparison Status", type: "text" },
+    { key: "comparison_status", label: "Form 146 Comparison Status", type: "status" },
     { key: "ack_number", label: "Acknowledgement Number", type: "text" },
     { key: "ack_date", label: "Acknowledgement Date", type: "date" },
     { key: "udin", label: "UDIN", type: "text" },
@@ -213,29 +213,25 @@ export const STAGE_FIELD_CONFIG = {
     {
       key: "invoice_copy",
       label: "Invoice Copy",
-      type: "file",
-      disabled: true,
+      type: "file_link",
     },
 
     {
       key: "form_10f_file",
       label: "Electronically filed Form 10F",
-      type: "file",
-      disabled: true,
+      type: "file_link",
     },
 
     {
       key: "trc_file",
       label: "Tax Residency Certificate (TRC)",
-      type: "file",
-      disabled: true,
+      type: "file_link",
     },
 
     {
       key: "no_pe_declaration_file",
       label: "No PE Declaration",
-      type: "file",
-      disabled: true,
+      type: "file_link",
     },
 
   ],
@@ -244,14 +240,14 @@ export const STAGE_FIELD_CONFIG = {
     { key: "ack_number", label: "Acknowledgement Number", type: "text" },
     { key: "posting_date", label: "Posting Date", type: "date" },
     { key: "bot_status", label: "Bot Status", type: "text" },
-    { key: "form_ca_file", label: "Form CA file", type: "file" },
+    { key: "form_145_file", label: "Form 145 file", type: "file" },
   ],
   payment_detail: [
     { key: "remarks", label: "Remarks, if any", type: "textarea" },
     { key: "sap_document_number", label: "SAP Document Number", type: "text" },
     { key: "posting_date", label: "Posting Date", type: "date" },
     { key: "payment_bank_documents", label: "Payment Bank Documents", type: "file" },
-    { key: "sap_username", label: "SAP Username", type: "text" },
+    { key: "sap_username", label: "SAP Username", type: "text", disabled: true },
   ],
   close_request: [{ key: "closing_remarks", label: "Remarks, if any", type: "textarea" }],
   approved: [{ key: "approval_remarks", label: "Approval Remarks", type: "textarea" }],

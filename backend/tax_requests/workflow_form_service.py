@@ -166,7 +166,7 @@ def get_visible_accordion_sections(current_stage_name):
 #             data[field] = value
 #     return data
 
-def _serialize_stage(record, section_key):
+def _serialize_stage(record, section_key, user=None):
     related_name = RELATED_NAMES[section_key]
     stage_obj = getattr(record, related_name, None)
 
@@ -198,8 +198,11 @@ def _serialize_stage(record, section_key):
             record.no_pe_declaration_file
         )
 
-    # No stage record yet? Return computed fields only
+    # No stage record yet
     if stage_obj is None:
+        # Auto-fill sap_username for payment_detail with the current user
+        if section_key == "payment_detail" and user:
+            data["sap_username"] = user.get_full_name() or user.username
         return data
 
     fields = STAGE_MODEL_FIELDS[section_key]
@@ -216,6 +219,10 @@ def _serialize_stage(record, section_key):
 
         else:
             data[field] = value
+
+    # Auto-fill sap_username for payment_detail with the current user if empty
+    if section_key == "payment_detail" and user and not data.get("sap_username"):
+        data["sap_username"] = user.get_full_name() or user.username
 
     return data
 
@@ -242,7 +249,7 @@ def build_workflow_form_payload(record, user):
 
     stages_data = {"master": _serialize_master(record)}
     for section_key in STAGE_MODEL_FIELDS:
-        stages_data[section_key] = _serialize_stage(record, section_key)
+        stages_data[section_key] = _serialize_stage(record, section_key, user=user)
 
     return {
         "stages": WORKFLOW_STAGE_NAMES,
