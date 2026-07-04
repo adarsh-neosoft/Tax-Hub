@@ -376,6 +376,11 @@ def save_workflow_form(record, user, payload, files=None):
         )
         stage_obj.save()
 
+        if section_key == "tds_opinion_stage":
+            bank_stage = _get_or_create_stage(record, "bank_detail")
+            bank_stage.form_146_type = stage_obj.form_146_type
+            bank_stage.save(update_fields=["form_146_type"])
+
     sync_remittance_report(record)
     return build_workflow_form_payload(record, user)
 

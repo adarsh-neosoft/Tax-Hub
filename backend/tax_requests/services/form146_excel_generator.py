@@ -61,7 +61,7 @@ FORM146_DATA_ROWS = [
     (None, "D. In case of other remittance not covered by sub- items A, B and C", None),
     # --- TDS ---
     (18, "Amount of TDS", None),
-    (None, "In foreign currency", "tds_fc"),
+    (None, "In foreign currency", "tds_rate"),
     (None, "In INR", "tds_inr"),
     (19, "Rate of TDS", None),
     (None, "As per income tax act (%) or as per DTAA (%)", "it_or_dtaa"),
@@ -248,6 +248,11 @@ class Form146ExcelGenerator:
                 opinion_stage.tds_amount_fc
                 if opinion_stage
                 else None
+            ),
+            "tds_rate": (
+                f"{opinion_stage.tax_rate}%"
+                if opinion_stage and opinion_stage.tax_rate
+                else ""
             ),
             "it_or_dtaa": (
                 self._format_it_or_dtaa(opinion_stage)
