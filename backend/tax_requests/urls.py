@@ -8,6 +8,8 @@ from tax_requests.views import (
     DownloadForm146ComparisonView,
 )
 
+from tax_requests.approval import ApprovalView
+
 urlpatterns = [
     path(
         "tdsopinion/workflow-form/",
@@ -33,5 +35,10 @@ urlpatterns = [
         "tdsopinion/<int:pk>/download-form146-comparison/",
         DownloadForm146ComparisonView.as_view(),
         name="download-form146-comparison",
+    ),
+    path(
+        "approval/<uuid:token>/",
+        ApprovalView.as_view(),
+        name="external-ca-approval",
     ),
 ]

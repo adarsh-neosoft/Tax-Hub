@@ -50,7 +50,9 @@ ROOT_URLCONF = "project.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -150,3 +152,20 @@ FRAMEWORK_SETTINGS = {
         ],
     },
 }
+
+
+FRONTEND_URL = "http://localhost:5173"
+
+DEFAULT_FROM_EMAIL = "your-email@company.com"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.office365.com"
+
+EMAIL_PORT = 587
+
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "your-email@company.com"
+
+EMAIL_HOST_PASSWORD = "your-password"

@@ -49,6 +49,7 @@ RELATED_NAMES = {
 from tax_requests.constants import FILE_VALIDITY_MAP, STAGE_FILE_FIELDS
 from tax_requests.remittance_service import sync_remittance_report
 from tax_requests.workflow_permissions import FK_FIELDS, can_user_act_on_tds_opinion
+from tax_requests.email_service import send_external_ca_email
 
 FILE_FIELDS = STAGE_FILE_FIELDS
 
@@ -380,6 +381,30 @@ def save_workflow_form(record, user, payload, files=None):
             bank_stage = _get_or_create_stage(record, "bank_detail")
             bank_stage.form_146_type = stage_obj.form_146_type
             bank_stage.save(update_fields=["form_146_type"])
+
+        print("\n======================================")
+        print("Current Section:", section_key)
+        
+        if section_key == "bank_detail":
+            print("Entered Bank Detail Stage")
+            print("Selected Form Type:", stage_obj.form_146_type)
+            print("Selected External CA:", stage_obj.external_ca)
+        
+            if (
+                stage_obj.form_146_type
+                and stage_obj.external_ca
+                and stage_obj.form_146_type.type_15cb == "Form 146 - Part C"
+            ):
+                print("Condition Matched.")
+                print("Calling send_external_ca_email()")
+                send_external_ca_email(record)
+            else:
+                print("Condition NOT Matched.")
+                print("Form Type:",
+                      stage_obj.form_146_type.type_15cb if stage_obj.form_146_type else None)
+                print("External CA:", stage_obj.external_ca)
+        
+        print("======================================\n")
 
     sync_remittance_report(record)
     return build_workflow_form_payload(record, user)
