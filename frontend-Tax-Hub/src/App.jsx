@@ -5,9 +5,11 @@ import {
 } from "iron-stack-ui";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
+import { useLocation, BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "sonner";
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import TDSOpinionFormPage from "./pages/TDSOpinionFormPage";
+import ApprovalPage from "./pages/ApprovalPage";
 
 const queryClient = new QueryClient();
 
@@ -16,14 +18,34 @@ const customRoutes = [
   { path: "/tds-opinion/:id/edit", element: <TDSOpinionFormPage /> },
 ];
 
+function AppLayout() {
+  const location = useLocation();
+
+  // Render /approval/:token outside AuthProvider — no sidebar, no login required
+  if (location.pathname.startsWith("/approval/")) {
+    return (
+      <>
+        <Toaster richColors closeButton position="top-right" />
+        <Routes>
+          <Route path="/approval/:token" element={<ApprovalPage />} />
+        </Routes>
+      </>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <IronStackApp customRoutes={customRoutes} />
+    </AuthProvider>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <IronStackApp customRoutes={customRoutes} />
-        </AuthProvider>
+        <AppLayout />
       </BrowserRouter>
     </QueryClientProvider>
   </ThemeProvider>

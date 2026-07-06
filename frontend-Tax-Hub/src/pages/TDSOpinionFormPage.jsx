@@ -9,14 +9,13 @@ import { api, WorkflowStatus, AuditTrail } from "iron-stack-ui";
 import { Form } from "@/components/ui/form.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Card } from "@/components/ui/card.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion.tsx";
+// import {
+//   Accordion,
+//   AccordionContent,
+//   AccordionItem,
+//   AccordionTrigger,
+// } from "@/components/ui/accordion.tsx";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +35,8 @@ import {
   collectFiles,
 } from "./tds-opinion/formUtils";
 import { submitWorkflowForm } from "../utils/workflow-form-api.js";
+import ApprovalHierarchy from "./ApprovalHierarchy.jsx";
+import WorkflowAccordion from "./WorkflowAccordion.jsx";
 
 const DEFAULT_STAGES = [
   "Initiated",
@@ -69,40 +70,6 @@ const DEFAULT_ACCORDION = [
   { stage: "TDS Opinion", key: "tds_opinion_stage", title: "TDS Opinion" },
   { stage: "Initiated", key: "master", title: "Opinion request" },
 ];
-
-function ApprovalHierarchy({ stages, currentStage }) {
-  const currentIdx = stages.indexOf(currentStage);
-
-  return (
-    <Card size="sm" className="p-5 mb-4">
-      <h3 className="text-sm font-semibold mb-4">Approval Hierarchy</h3>
-      <div className="overflow-x-auto pb-2">
-        <div className="flex items-start min-w-max gap-0">
-          {stages.map((stage, idx) => {
-            const done = idx <= currentIdx;
-            return (
-              <div key={stage} className="flex items-center">
-                <div className="flex flex-col items-center w-28 px-1">
-                  <div
-                    className={`h-3 w-3 rounded-full border-2 ${
-                      done ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"
-                    }`}
-                  />
-                  <p className={`text-xs text-center mt-2 leading-tight ${done ? "font-medium" : "text-muted-foreground"}`}>
-                    {stage}
-                  </p>
-                </div>
-                {idx < stages.length - 1 && (
-                  <div className={`h-0.5 w-8 -mt-6 ${idx < currentIdx ? "bg-primary" : "bg-muted"}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 export default function TDSOpinionFormPage() {
   const { id } = useParams();
@@ -831,93 +798,23 @@ export default function TDSOpinionFormPage() {
       ) : (
         <>
           <ApprovalHierarchy stages={stages} currentStage={currentStage} />
-
-          <Card size="sm" className="p-5 mb-4">
-            <Accordion type="single" collapsible value={openAccordion} onValueChange={setOpenAccordion}>
-              {accordionSections.map((section) => {
-                const fields = sectionFieldsMap[section.key] || [];
-                const editable = editableSections.includes(section.key);
-                const fileUrls = nestedData[section.key] || {};
-
-                return (
-                  <AccordionItem key={section.key} value={section.key}>
-                    <AccordionTrigger className="text-base font-medium hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <span>{section.title}</span>
-                        {section.stage === currentStage && (
-                          <Badge variant="default" className="text-xs">Current</Badge>
-                        )}
-                        {!editable && <Badge variant="secondary" className="text-xs">Read only</Badge>}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-4">
-                      <Form {...form}>
-                        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                          <StageFormFields
-                            control={form.control}
-                            sectionKey={section.key}
-                            fields={
-                              section.key === "bank_detail"
-                                ? fields.filter((field) => {
-                                    const selectedType = (
-                                      form146TypeData?.type_15cb || ""
-                                    ).toLowerCase();
-
-                                    const showExternalCA =
-                                      selectedType.includes("146") &&
-                                      selectedType.includes("part c");
-
-                                    if (
-                                      field.key === "external_ca" &&
-                                      !showExternalCA
-                                    ) {
-                                      return false;
-                                    }
-
-                                    return true;
-                                  })
-                                : section.key === "master" && !poNpo
-                                  ? fields.filter(
-                                      (field) => field.key !== "po_number"
-                                    )
-                                  : fields
-                            }
-                            disabled={!editable}
-                            fileUrls={fileUrls}
-                            requestId={id}
-                            values={form.watch()}
-                            onComparisonComplete={() => {
-                              queryClient.invalidateQueries({ queryKey: ["tds-workflow-form", id] });
-                            }}
-                          />
-                          {editable && (
-                            <div className="flex justify-end gap-2 pt-4 border-t">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleClear}
-                                disabled={saveMutation.isPending}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                type="button"
-                                onClick={() => submitSection(section.key)}
-                                disabled={saveMutation.isPending}
-                              >
-                                {saveMutation.isPending && <Spinner className="mr-2" />}
-                                Save
-                              </Button>
-                            </div>
-                          )}
-                        </form>
-                      </Form>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </Card>
+          <WorkflowAccordion
+                form={form}
+                accordionSections={accordionSections}
+                sectionFieldsMap={sectionFieldsMap}
+                editableSections={editableSections}
+                currentStage={currentStage}
+                openAccordion={openAccordion}
+                setOpenAccordion={setOpenAccordion}
+                queryClient={queryClient}
+                form146TypeData={form146TypeData}
+                poNpo={poNpo}
+                requestId={id}
+                sectionFields={nestedData}
+                submitSection={submitSection}
+                saveMutation={saveMutation}
+                handleClear={handleClear}
+            />
 
           <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
           <AuditTrail appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
