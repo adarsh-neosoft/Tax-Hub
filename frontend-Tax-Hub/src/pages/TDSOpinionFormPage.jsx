@@ -127,6 +127,8 @@ export default function TDSOpinionFormPage() {
   const grossingUpApplicable = form.watch("tds_opinion_stage.grossing_up_applicable");
   const poNpo = form.watch("master.po_npo");
   const particular = form.watch("master.particular");
+  const exchangeRateDate = form.watch("tds_opinion_stage.exchange_rate_date");
+  const tdsOpinionCurrency = form.watch("tds_opinion_stage.currency");
   const [particularOptions, setParticularOptions] = useState([]);
   const company = form.watch("master.company");
   const vendor = form.watch("master.vendor");
@@ -408,6 +410,54 @@ export default function TDSOpinionFormPage() {
     fetchBank();
 
   }, [bankIfscCode, form]);
+
+  // Auto-fetch exchange rate when exchange_rate_date or currency changes in TDS Opinion stage
+  useEffect(() => {
+    // Clear exchange rate if date is cleared
+    if (!exchangeRateDate) {
+      form.setValue("tds_opinion_stage.exchange_rate", "", {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
+
+    if (!tdsOpinionCurrency) return;
+
+    const fetchExchangeRate = async () => {
+      try {
+        const res = await api.get(
+          "/tax_requests/tdsopinion/fetch-exchange-rate/",
+          {
+            params: {
+              date: exchangeRateDate,
+              currency_id: tdsOpinionCurrency,
+            },
+          }
+        );
+
+        if (res.data?.found) {
+          form.setValue(
+            "tds_opinion_stage.exchange_rate",
+            String(res.data.exchange_rate),
+            { shouldDirty: true, shouldValidate: true }
+          );
+        } else {
+          form.setValue("tds_opinion_stage.exchange_rate", "", {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+          toast.error(res.data?.message || "No exchange rate found for this date and currency");
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to fetch exchange rate. Please try again.");
+      }
+    };
+
+    const timer = setTimeout(fetchExchangeRate, 300);
+    return () => clearTimeout(timer);
+  }, [exchangeRateDate, tdsOpinionCurrency, form]);
 
   useEffect(() => {
     const fetchParticulars = async () => {

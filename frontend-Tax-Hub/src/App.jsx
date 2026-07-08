@@ -35,6 +35,7 @@ function AppLayout() {
 
   return (
     <AuthProvider>
+      <Toaster richColors closeButton position="top-right" />
       <IronStackApp customRoutes={customRoutes} />
     </AuthProvider>
   );

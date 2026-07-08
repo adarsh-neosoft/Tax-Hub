@@ -201,6 +201,10 @@ def _serialize_stage(record, section_key, user=None):
 
     # No stage record yet
     if stage_obj is None:
+        # Auto-fill currency from the master record for TDS Opinion stage
+        if section_key == "tds_opinion_stage" and record.currency_id:
+            data["currency"] = record.currency_id
+            data["currency_display"] = _get_fk_display_value(record, "currency")
         # Auto-fill sap_username for payment_detail with the current user
         if section_key == "payment_detail" and user:
             data["sap_username"] = user.get_full_name() or user.username

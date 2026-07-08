@@ -4,6 +4,7 @@ from tax_requests.views import (
     TDSOpinionWorkflowFormCreateView,
     TDSOpinionWorkflowFormDetailView,
     CheckExistingVendorRequestView,
+    FetchExchangeRateView,
     DownloadForm146View,
     DownloadForm146ComparisonView,
 )
@@ -25,6 +26,11 @@ urlpatterns = [
         "tdsopinion/check-existing/",
         CheckExistingVendorRequestView.as_view(),
         name="check-existing-vendor",
+    ),
+    path(
+        "tdsopinion/fetch-exchange-rate/",
+        FetchExchangeRateView.as_view(),
+        name="tdsopinion-fetch-exchange-rate",
     ),
     path(
         "tdsopinion/<int:pk>/download-form146/",

@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from tax_requests.constants import FILE_VALIDITY_MAP
 from tax_requests.models import TDSOpinion, Form146Stage
+from masters.models import Currency, ExchangeRate
 from django.http import FileResponse
 
 from tax_requests.services.form146_excel_generator import (Form146ExcelGenerator,)
@@ -152,6 +153,47 @@ class CheckExistingVendorRequestView(APIView):
 
         return Response(response_data)
     
+
+class FetchExchangeRateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        date = request.GET.get("date")
+        currency_id = request.GET.get("currency_id")
+
+        if not date or not currency_id:
+            return Response(
+                {"detail": "Both 'date' and 'currency_id' parameters are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            currency = Currency.objects.get(id=currency_id)
+        except Currency.DoesNotExist:
+            return Response(
+                {"detail": "Currency not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        exchange_rate = ExchangeRate.objects.filter(
+            date=date,
+            currency=currency.currency,
+            is_deleted=False,
+        ).first()
+
+        if not exchange_rate:
+            return Response({
+                "found": False,
+                "message": f"No exchange rate found for {currency.currency} on {date}",
+            })
+
+        return Response({
+            "found": True,
+            "exchange_rate": str(exchange_rate.exchange_rate),
+            "date": date,
+            "currency": currency.currency,
+        })
+
 
 class DownloadForm146View(APIView):
 
