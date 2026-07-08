@@ -58,6 +58,9 @@ class Country(BaseModel):
         "api_path": "masters/country",
     }
 
+    def __str__(self):
+        return self.country_name
+
     class Meta:
         db_table = "country"
         app_label = "masters"

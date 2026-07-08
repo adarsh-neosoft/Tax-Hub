@@ -97,9 +97,9 @@ class Bank(BaseModel):
         "api_path": "masters/bank",
     }
 
+    def __str__(self):
+        return self.ifsc_code
+
     class Meta:
         db_table = "bank"
         app_label = "masters"
-
-    # def __str__(self):
-    #     return f"{self.bank_name} - {self.branch_name}"

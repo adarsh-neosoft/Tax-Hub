@@ -48,6 +48,9 @@ class Type15CB(BaseModel):
         "api_path": "masters/Type15CB",
     }
 
+    def __str__(self):
+        return self.type_15cb
+
     class Meta:
         db_table = "type_15cb"
         app_label = "masters"

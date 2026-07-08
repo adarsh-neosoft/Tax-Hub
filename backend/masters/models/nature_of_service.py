@@ -45,6 +45,9 @@ class NatureOfService(BaseModel):
         "api_path": "masters/NatureOfService",
     }
 
+    def __str__(self):
+        return self.service_description
+
     class Meta:
         db_table = "nature_of_service"
         app_label = "masters"

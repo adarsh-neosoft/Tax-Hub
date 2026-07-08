@@ -221,6 +221,10 @@ def _serialize_stage(record, section_key, user=None):
 
         elif field in FK_FIELDS:
             data[field] = getattr(stage_obj, f"{field}_id", None)
+            # Include display label for FK fields
+            fk_obj = getattr(stage_obj, field, None)
+            if fk_obj:
+                data[f"{field}_display"] = str(fk_obj)
 
         else:
             data[field] = value
@@ -239,6 +243,10 @@ def _serialize_master(record):
         value = getattr(record, field, None)
         if field in ("company", "currency", "particular"):
             data[field] = getattr(record, f"{field}_id", None)
+            # Include display label for FK fields
+            fk_obj = getattr(record, field, None)
+            if fk_obj:
+                data[f"{field}_display"] = str(fk_obj)
         elif field in file_fields:
             data[field] = _file_field_url(value)
         else:

@@ -41,6 +41,9 @@ class RBIPurposeCode(BaseModel):
         "api_path": "masters/RBIPurposeCode",
     }
 
+    def __str__(self):
+        return self.rbi_purpose_code
+
     class Meta:
         db_table = "rbi_purpose_code"
         app_label = "masters"

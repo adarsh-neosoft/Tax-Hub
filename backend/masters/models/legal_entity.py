@@ -192,6 +192,9 @@ class LegalEntity(BaseModel):
         "api_path": "masters/LegalEntity",
     }
 
+    def __str__(self):
+        return f"{self.sap_code} - {self.entity_name}"
+
     class Meta:
         db_table = "legal_entity"
         app_label = "masters"

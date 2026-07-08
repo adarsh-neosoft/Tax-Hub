@@ -49,6 +49,9 @@ class VendorStatus(BaseModel):
         "api_path": "masters/vendorstatus",
     }
 
+    def __str__(self):
+        return self.status_name
+
     class Meta:
         db_table = "vendor_status"
         app_label = "masters"

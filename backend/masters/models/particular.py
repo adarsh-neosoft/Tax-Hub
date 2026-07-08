@@ -55,6 +55,9 @@ class Particular(BaseModel):
         "api_path": "masters/particular",
     }
 
+    def __str__(self):
+        return self.particular_name
+
     class Meta:
         db_table = "particular"
         app_label = "masters"

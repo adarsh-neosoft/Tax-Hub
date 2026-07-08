@@ -106,7 +106,7 @@ async function downloadFileWithDialog(url, options = {}) {
   document.body.removeChild(a);
 }
 
-function FkFormField({ control, name, field, disabled, formValues }) {
+function FkFormField({ control, name, field, disabled, formValues, sectionKey }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const params = useMemo(() => {
@@ -137,6 +137,8 @@ function FkFormField({ control, name, field, disabled, formValues }) {
       }),
   });
 
+  const isDisabled = disabled || field.disabled;
+
   return (
     <FormField
       control={control}
@@ -145,51 +147,49 @@ function FkFormField({ control, name, field, disabled, formValues }) {
         const selectedItem = (data).find(
           (item) => String(item.id) === String(f.value)
         );
+        // Check if we have a display label from backend payload
+        const displayLabel = formValues?.[sectionKey]?.[field.key + "_display"];
+
         return (
           <FormItem>
             <FormLabel>{field.label}</FormLabel>
 
-            <Select
-              // disabled={disabled}
-              disabled={disabled || field.disabled}
-              value={String(f.value ?? "")}
-              onValueChange={(value) => {
-                if (value === "" || value == null) {
-                  return;
-                }
-                f.onChange(value);
-              }}
-            >
-              <FormControl>
-                <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={`Select ${field.label}`}
-                />
-                </SelectTrigger>
-              </FormControl>
-
-              <SelectContent>
-                {/* <div className="p-2 pb-1">
-                  <Input
-                    placeholder="Search..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="h-8 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
+            {isDisabled && displayLabel ? (
+              // Show plain text display when disabled and we have a display label
+              <div className="w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground text-left">
+                {displayLabel}
+              </div>
+            ) : (
+              <Select
+                disabled={isDisabled}
+                value={String(f.value ?? "")}
+                onValueChange={(value) => {
+                  if (value === "" || value == null) {
+                    return;
+                  }
+                  f.onChange(value);
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={`Select ${field.label}`}
                   />
-                </div> */}
+                  </SelectTrigger>
+                </FormControl>
 
-                {(data).map((item) => (
-                  <SelectItem
-                    key={item.id}
-                    value={String(item.id)}
-                  >
-                    {getFkLabel(item, field)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectContent>
+                  {(data).map((item) => (
+                    <SelectItem
+                      key={item.id}
+                      value={String(item.id)}
+                    >
+                      {getFkLabel(item, field)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <FormMessage />
           </FormItem>
@@ -515,7 +515,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         if (field.type === "fk") {
           return (
             <div key={field.key} className={colSpan}>
-              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} />
+              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} sectionKey={sectionKey} />
             </div>
           );
         }

@@ -55,6 +55,9 @@ class Currency(BaseModel):
         "api_path": "masters/currency",
     }
 
+    def __str__(self):
+        return self.currency
+
     class Meta:
         db_table = "currency"
         app_label = "masters"

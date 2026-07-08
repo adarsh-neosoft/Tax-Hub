@@ -83,6 +83,9 @@ class ExternalCA(BaseModel):
         "api_path": "masters/ExternalCA",
     }
 
+    def __str__(self):
+        return self.firm_name
+
     class Meta:
         db_table = "external_ca"
         app_label = "masters"

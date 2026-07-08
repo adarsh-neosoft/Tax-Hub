@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { MASTER_FIELDS, STAGE_FIELD_CONFIG } from "./tds-opinion/fieldConfig";
 import ApprovalHierarchy from "./ApprovalHierarchy";
 import WorkflowAccordion from "./WorkflowAccordion";
 import { Card } from "@/components/ui/card";
@@ -116,6 +117,14 @@ export default function ApprovalPage() {
     const workflow = payload?.workflow;
 
     const nestedData = payload?.data || {};
+
+    const sectionFieldsMap = useMemo(
+        () => ({
+            master: MASTER_FIELDS,
+            ...STAGE_FIELD_CONFIG,
+        }),
+        [],
+    );
 
     /**
      * ----------------------------------------------------------
@@ -367,6 +376,8 @@ export default function ApprovalPage() {
                         form={form}
 
                         accordionSections={accordionSections}
+
+                        sectionFieldsMap={sectionFieldsMap}
 
                         editableSections={editableSections}
 
