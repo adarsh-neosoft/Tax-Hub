@@ -85,6 +85,41 @@ def _file_field_url(value):
     return None
 
 
+def _get_fk_display_value(obj, field_name):
+    """
+    Return a human-readable label for a FK field, matching the frontend's getFkLabel().
+    Returns None when the FK is not set.
+    """
+    fk_obj = getattr(obj, field_name, None)
+    if fk_obj is None:
+        return None
+
+    # Mirror frontend labelFields from fieldConfig.js
+    DISPLAY_FIELDS = {
+        "company": ["sap_code", "entity_name"],       # LegalEntity
+        "currency": ["currency"],                      # Currency
+        "particular": ["particular_name"],             # Particular
+        "nature_of_service": ["service_description"],  # NatureOfService
+        "form_146_type": ["type_15cb"],               # Type15CB
+        "country": ["country_name"],                  # Country
+        "vendor_status": ["status_name"],              # VendorStatus
+        "bank_ifsc_code": ["ifsc_code"],              # Bank
+        "rbi_purpose_code": ["rbi_purpose_code"],     # RBIPurposeCode
+        "rbi_sub_code": ["sub_code"],                 # RBIPurposeSubCode
+        "external_ca": ["firm_name"],                 # ExternalCA
+        "po_number": ["purchase_order_number"],       # PurchaseOrder
+        "ldc_certificate": ["certificate_number"],    # LDCCertificate
+    }
+
+    fields = DISPLAY_FIELDS.get(field_name)
+    if not fields:
+        return str(fk_obj)
+
+    parts = [str(getattr(fk_obj, f, "")) for f in fields]
+    parts = [p for p in parts if p]
+    return " - ".join(parts) if parts else str(fk_obj.id)
+
+
 def _get_tds_opinion_workflow():
     ct = ContentType.objects.get_for_model(TDSOpinion)
     return Workflow.objects.filter(
@@ -221,6 +256,8 @@ def _serialize_stage(record, section_key, user=None):
 
         elif field in FK_FIELDS:
             data[field] = getattr(stage_obj, f"{field}_id", None)
+            # Include human-readable label for use in read-only contexts (e.g. approval by External CA)
+            data[f"{field}_display"] = _get_fk_display_value(stage_obj, field)
 
         else:
             data[field] = value
@@ -237,8 +274,10 @@ def _serialize_master(record):
     file_fields = set(FILE_FIELDS.get("master", []))
     for field in MASTER_INITIATED_FIELDS:
         value = getattr(record, field, None)
-        if field in ("company", "currency", "particular"):
+        if field in FK_FIELDS:
             data[field] = getattr(record, f"{field}_id", None)
+            # Include human-readable label for read-only contexts (e.g. approval by External CA)
+            data[f"{field}_display"] = _get_fk_display_value(record, field)
         elif field in file_fields:
             data[field] = _file_field_url(value)
         else:

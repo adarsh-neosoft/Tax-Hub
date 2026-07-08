@@ -874,7 +874,7 @@ export default function TDSOpinionFormPage() {
                 handleClear={handleClear}
             />
 
-          <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
+          <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} hideRejectForStage={currentStage} />
           <AuditTrail appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
         </>
       )}

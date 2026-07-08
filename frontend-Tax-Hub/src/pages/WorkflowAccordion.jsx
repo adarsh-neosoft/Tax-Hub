@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion.tsx";
 
 import StageFormFields from "./tds-opinion/StageFormFields";
+import { ALL_SECTION_FIELDS } from "./tds-opinion/fieldConfig";
 
 
 export default function WorkflowAccordion({
@@ -39,16 +40,30 @@ export default function WorkflowAccordion({
         if (sectionFieldsMap) {
             return sectionFieldsMap[sectionKey] || [];
         }
-        // Fallback: generate basic field definitions from the data keys
+        // Fallback: use field config from fieldConfig.js for labels and proper types
+        const configFields = ALL_SECTION_FIELDS[sectionKey] || [];
         const data = sectionFields?.[sectionKey];
-        if (!data) return [];
-        return Object.keys(data).map((key) => ({
-            key,
-            // If the value looks like a url/object, treat as file
-            type: (typeof data[key] === "object" && data[key] !== null && !Array.isArray(data[key]))
-                ? "file"
-                : "text",
-        }));
+        if (!data) return configFields;
+
+        return Object.keys(data)
+        .filter((key) => !key.endsWith('_display'))
+        .map((key) => {
+            const config = configFields.find((f) => f.key === key);
+            return {
+                key,
+                label: config?.label || key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+                type: config?.type ||
+                    (typeof data[key] === "object" && data[key] !== null && !Array.isArray(data[key])
+                        ? "file"
+                        : "text"),
+                disabled: config?.disabled ?? false,
+                ...(config?.api ? { api: config.api } : {}),
+                ...(config?.labelFields ? { labelFields: config.labelFields } : {}),
+                ...(config?.options ? { options: config.options } : {}),
+                ...(config?.action ? { action: config.action } : {}),
+                ...(config?.dropdownParams ? { dropdownParams: config.dropdownParams } : {}),
+            };
+        });
     };
 
     return (

@@ -121,15 +121,17 @@ class ApprovalService:
         )
 
         # ------------------------------------------------------------------
-        # Expire approval link
+        # Mark approval link
         # ------------------------------------------------------------------
 
+        approval.is_approved = True
         approval.is_valid = False
-        approval.save(update_fields=["is_valid"])
+        approval.save(update_fields=["is_approved", "is_valid"])
 
         return {
             "success": True,
             "message": message,
+            "action": "approved",
             "request_id": request.id,
             "request_code": request.request_code,
             "current_stage": (
@@ -179,13 +181,15 @@ class ApprovalService:
             ]
         )
 
-        # Expire approval link
+        # Mark approval link as rejected
+        approval.is_approved = False
         approval.is_valid = False
-        approval.save(update_fields=["is_valid"])
+        approval.save(update_fields=["is_approved", "is_valid"])
 
         return {
             "success": True,
             "message": message,
+            "action": "rejected",
             "request_id": request.id,
             "request_code": request.request_code,
             "workflow_status": workflow_instance.status,
@@ -238,12 +242,14 @@ class ApprovalService:
             ]
         )
 
+        approval.is_approved = False
         approval.is_valid = False
-        approval.save(update_fields=["is_valid"])
+        approval.save(update_fields=["is_approved", "is_valid"])
 
         return {
             "success": True,
             "message": message,
+            "action": "returned",
             "request_id": request.id,
             "request_code": request.request_code,
             "current_stage": workflow_instance.current_stage.name,

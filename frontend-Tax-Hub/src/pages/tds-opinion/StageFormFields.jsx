@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/utils/utils.ts";
 import { fieldName } from "./formUtils";
 
-const useTdsRateOptions = () => {
+const useTdsRateOptions = (enabled = true) => {
   return useQuery({
     queryKey: ["tds-rate-dropdown"],
     queryFn: async () => {
@@ -31,6 +31,7 @@ const useTdsRateOptions = () => {
         ? d
         : d.results || [];
     },
+    enabled,
   });
 };
 
@@ -109,6 +110,19 @@ async function downloadFileWithDialog(url, options = {}) {
 function FkFormField({ control, name, field, disabled, formValues }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+
+  // Compute the _display label path from the form field name.
+  // form.watch() returns nested objects (e.g. { bank_detail: { bank_ifsc_code: 3, bank_ifsc_code_display: "..." } }),
+  // so we traverse: formValues.bank_detail.bank_ifsc_code_display
+  const lastDot = name.lastIndexOf(".");
+  const sectionPath = lastDot >= 0 ? name.slice(0, lastDot) : "";
+  const fieldKey = name.slice(lastDot + 1);
+  const displayKey = fieldKey + "_display";
+  const displayLabel =
+    sectionPath
+      ? formValues?.[sectionPath]?.[displayKey]
+      : formValues?.[displayKey];
+
   const params = useMemo(() => {
     const p = { ...(field.dropdownParams || {}) };
     if (debouncedSearch) {
@@ -124,6 +138,27 @@ function FkFormField({ control, name, field, disabled, formValues }) {
     return p;
   }, [field.dropdownParams, debouncedSearch, formValues, field.key]);
 
+  const isDisabled = disabled || field.disabled;
+
+  // Determine if the form has been populated with backend data yet.
+  const formHasData = Object.keys(formValues || {}).length > 0;
+
+  // Check if the field actually has a value (FK ID). If it's null and disabled,
+  // there's nothing to look up — the field should show blank/em-dash.
+  const rawValue = sectionPath
+    ? formValues?.[sectionPath]?.[fieldKey]
+    : formValues?.[fieldKey];
+  const hasValue = rawValue != null && rawValue !== "";
+
+  // Skip the dropdown API call when the field is disabled AND:
+  // - we already have a display label from the backend, OR
+  // - the field has no value (nothing to look up), OR
+  // - the form data hasn't loaded yet (approval page timing)
+  // This avoids 401 errors for unauthenticated users (External CA approval page)
+  // while still fetching dropdown data for authenticated users in read-only
+  // sections (normal form view) where no _display label is available.
+  const canSkipFetch = isDisabled && (!!displayLabel || !hasValue || !formHasData);
+
   const { data = [] } = useQuery({
     queryKey: [
       "dropdown",
@@ -135,6 +170,7 @@ function FkFormField({ control, name, field, disabled, formValues }) {
         const d = r.data;
         return Array.isArray(d) ? d : d.results || [];
       }),
+    enabled: !canSkipFetch,
   });
 
   return (
@@ -145,13 +181,36 @@ function FkFormField({ control, name, field, disabled, formValues }) {
         const selectedItem = (data).find(
           (item) => String(item.id) === String(f.value)
         );
+
+        // In disabled/read-only mode, show the selected label as plain text.
+        // This avoids depending on the dropdown API being available
+        // (e.g. External CA user in approval mode may not have API auth).
+        if (isDisabled) {
+          const displayValue =
+            // 1. From matched dropdown data (when API is available)
+            selectedItem
+              ? getFkLabel(selectedItem, field)
+              : // 2. From backend-sent display label (via form values)
+                displayLabel ||
+                // 3. Fallback: show raw value or em-dash
+                (f.value ? String(f.value) : null);
+
+          return (
+            <FormItem>
+              <FormLabel>{field.label}</FormLabel>
+              <div className="w-full py-2 px-3 text-sm border rounded-md bg-muted/30 min-h-[38px] flex items-center">
+                {displayValue ?? <span className="text-muted-foreground">\u2014</span>}
+              </div>
+            </FormItem>
+          );
+        }
+
         return (
           <FormItem>
             <FormLabel>{field.label}</FormLabel>
 
             <Select
-              // disabled={disabled}
-              disabled={disabled || field.disabled}
+              disabled={isDisabled}
               value={String(f.value ?? "")}
               onValueChange={(value) => {
                 if (value === "" || value == null) {
@@ -169,17 +228,6 @@ function FkFormField({ control, name, field, disabled, formValues }) {
               </FormControl>
 
               <SelectContent>
-                {/* <div className="p-2 pb-1">
-                  <Input
-                    placeholder="Search..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="h-8 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  />
-                </div> */}
-
                 {(data).map((item) => (
                   <SelectItem
                     key={item.id}
@@ -294,9 +342,32 @@ function FkFormField({ control, name, field, disabled, formValues }) {
 //     />
 //   );
 // }
-function SupplierSearchField({ control, name, field, disabled }) {
+function SupplierSearchField({ control, name, field, disabled, formValues }) {
   const [search, setSearch] = useState("");
   const formValue = useWatch({ control, name });
+
+  const isDisabled = disabled || field.disabled;
+
+  // Compute the _display label path from the form field name.
+  const lastDot = name.lastIndexOf(".");
+  const sectionPath = lastDot >= 0 ? name.slice(0, lastDot) : "";
+  const fieldKey = name.slice(lastDot + 1);
+  const displayKey = fieldKey + "_display";
+  const displayLabel =
+    sectionPath
+      ? formValues?.[sectionPath]?.[displayKey]
+      : formValues?.[displayKey];
+
+  // Determine if the form has been populated with backend data yet.
+  // The approval page loads data via useEffect, so on the initial render
+  // formValues is empty.
+  const formHasData = Object.keys(formValues || {}).length > 0;
+
+  // SupplierSearchField stores display strings (e.g. "Acme Corp (ACME123)") as form values,
+  // so the raw f.value IS the display label. Skip the API call entirely when disabled
+  // to avoid 401 errors for unauthenticated users (External CA approval page).
+  // Also skip when the form hasn't loaded yet (prevents initial fetch storm on approval page).
+  const canSkipFetch = isDisabled || !formHasData;
 
   // Sync internal search state when form is cleared externally (e.g., Clear button)
   useEffect(() => {
@@ -330,56 +401,77 @@ function SupplierSearchField({ control, name, field, disabled }) {
         const d = r.data;
         return Array.isArray(d) ? d : d.results || [];
       }),
+    enabled: !canSkipFetch,
   });
 
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field: f }) => (
-        <FormItem>
-          <FormLabel>{field.label}</FormLabel>
+      render={({ field: f }) => {
+        // In disabled/read-only mode, show the selected value as plain text.
+        if (isDisabled) {
+          const displayValue =
+            // 1. From backend-sent display label (via form values)
+            displayLabel ||
+            // 2. Fallback: show raw value or em-dash
+            (f.value ? String(f.value) : null);
 
-          <div className="relative">
-            <Input
-              placeholder="Search Vendor"
-              value={search || f.value || ""}
-              disabled={disabled || field.disabled}
-              onChange={(e) => {
-                setSearch(e.target.value);
-
-                if (f.value) {
-                  f.onChange("");
-                }
-              }}
-            />
-
-            {search && data.length > 0 && (
-              <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md max-h-60 overflow-auto">
-                {data.map((item) => {
-                  const displayValue =
-                    `${item.vendor_name} (${item.vendor_code})`;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="cursor-pointer px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
-                      onClick={() => {
-                        f.onChange(displayValue);
-                        setSearch(displayValue);
-                      }}
-                    >
-                      {displayValue}
-                    </div>
-                  );
-                })}
+          return (
+            <FormItem>
+              <FormLabel>{field.label}</FormLabel>
+              <div className="w-full py-2 px-3 text-sm border rounded-md bg-muted/30 min-h-[38px] flex items-center">
+                {displayValue ?? <span className="text-muted-foreground">\u2014</span>}
               </div>
-            )}
-          </div>
+            </FormItem>
+          );
+        }
 
-          <FormMessage />
-        </FormItem>
-      )}
+        return (
+          <FormItem>
+            <FormLabel>{field.label}</FormLabel>
+
+            <div className="relative">
+              <Input
+                placeholder="Search Vendor"
+                value={search || f.value || ""}
+                disabled={isDisabled}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+
+                  if (f.value) {
+                    f.onChange("");
+                  }
+                }}
+              />
+
+              {search && data.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md max-h-60 overflow-auto">
+                  {data.map((item) => {
+                    const displayValue =
+                      `${item.vendor_name} (${item.vendor_code})`;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="cursor-pointer px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0"
+                        onClick={() => {
+                          f.onChange(displayValue);
+                          setSearch(displayValue);
+                        }}
+                      >
+                        {displayValue}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }
@@ -388,8 +480,11 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
 
   const [downloadingUrl, setDownloadingUrl] = useState(null);
 
+  // Only fetch TDS rate options when the section is editable (not disabled)
+  // to avoid 401 errors for unauthenticated users (e.g. External CA approval).
+  const hasTdsRateField = fields.some((f) => f.type === "tds_rate");
   const { data: tdsRateOptions = [] } =
-    useTdsRateOptions();
+    useTdsRateOptions(hasTdsRateField && !disabled);
 
   const handleButtonClick = async (action) => {
     let url;
@@ -528,6 +623,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 name={name}
                 field={field}
                 disabled={disabled || field.disabled}
+                formValues={values}
               />
             </div>
           );
@@ -651,6 +747,45 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 return false;
               }
             : undefined;
+          // Reference date from TDS Opinion stage used to constrain date pickers.
+          const exchangeRateDate = values?.tds_opinion_stage?.exchange_rate_date;
+
+          let disabledDates;
+
+          if (sectionKey === "invoice_posting" && field.key === "invoice_posting_date") {
+            // Invoice Posting Date: only the exchange_rate_date is selectable.
+            if (exchangeRateDate) {
+              const [y, m, d] = exchangeRateDate.split("-").map(Number);
+              const erd = new Date(y, m - 1, d);
+              disabledDates = (date) =>
+                date.getFullYear() !== erd.getFullYear()
+                || date.getMonth() !== erd.getMonth()
+                || date.getDate() !== erd.getDate();
+            }
+          } else if (sectionKey === "bank_detail" && field.key === "proposed_remittance_date") {
+            // Proposed date of remittance: only dates from exchange_rate_date onwards.
+            if (exchangeRateDate) {
+              const [y, m, d] = exchangeRateDate.split("-").map(Number);
+              const erd = new Date(y, m - 1, d);
+              disabledDates = (date) => date < erd;
+            }
+          } else if (sectionKey === "form_146" && field.key === "ack_date") {
+            // Acknowledgement Date: only dates from invoice_date onwards.
+            const invoiceDate = values?.master?.invoice_date;
+            if (invoiceDate) {
+              const [y, m, d] = invoiceDate.split("-").map(Number);
+              const invDate = new Date(y, m - 1, d);
+              disabledDates = (date) => date < invDate;
+            }
+          } else if (sectionKey === "form_145" && field.key === "posting_date") {
+            // Posting Date (Form 145): only dates from invoice_date onwards.
+            const invoiceDate = values?.master?.invoice_date;
+            if (invoiceDate) {
+              const [y, m, d] = invoiceDate.split("-").map(Number);
+              const invDate = new Date(y, m - 1, d);
+              disabledDates = (date) => date < invDate;
+            }
+          }
 
           return (
             <div key={field.key} className={colSpan}>
@@ -680,6 +815,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                           selected={f.value ? new Date(f.value) : undefined}
                           onSelect={(d) => f.onChange(d ? format(d, "yyyy-MM-dd") : "")}
                           disabled={disabledDays}
+                          disabled={disabledDates}
                         />
                       </PopoverContent>
                     </Popover>

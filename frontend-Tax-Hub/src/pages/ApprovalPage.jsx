@@ -29,6 +29,8 @@ export default function ApprovalPage() {
     const [openAccordion, setOpenAccordion] = useState("");
 
     const [completed, setCompleted] = useState(false);
+    const [lastAction, setLastAction] = useState(null);
+    const [formReady, setFormReady] = useState(false);
 
     const form = useForm({
         defaultValues: {},
@@ -77,6 +79,8 @@ export default function ApprovalPage() {
 
             toast.success(data.message);
 
+            setLastAction(data.action || "submitted");
+
             setCompleted(true);
 
         },
@@ -119,41 +123,24 @@ export default function ApprovalPage() {
 
     /**
      * ----------------------------------------------------------
-     * Populate form
+     * Populate form — only render the accordion AFTER form is populated
+     * to avoid timing issues with dropdown API calls (External CA has no JWT).
      * ----------------------------------------------------------
      */
 
     useEffect(() => {
 
-        if (!nestedData) return;
+        if (!nestedData || Object.keys(nestedData).length === 0) {
+            return;
+        }
 
-        Object.entries(nestedData).forEach(
+        // Reset the form with all nested data at once
+        form.reset(nestedData);
 
-            ([sectionKey, values]) => {
+        // Mark form as ready — this triggers rendering WorkflowAccordion
+        setFormReady(true);
 
-                if (!values) return;
-
-                Object.entries(values).forEach(
-
-                    ([field, value]) => {
-
-                        form.setValue(
-
-                            `${sectionKey}.${field}`,
-
-                            value
-
-                        );
-
-                    }
-
-                );
-
-            }
-
-        );
-
-    }, [nestedData]);
+    }, [nestedData, form]);
 
     /**
      * ----------------------------------------------------------
@@ -273,21 +260,45 @@ export default function ApprovalPage() {
      */
 
     if (completed) {
+        const actionConfig = {
+            approved: {
+                icon: "✅",
+                title: "Approved",
+                message: "You have approved this request.",
+            },
+            rejected: {
+                icon: "❌",
+                title: "Rejected",
+                message: "You have rejected this request.",
+            },
+            returned: {
+                icon: "↩️",
+                title: "Returned",
+                message: "You have returned this request for revision.",
+            },
+        };
+
+        const config = actionConfig[lastAction] || {
+            icon: "✅",
+            title: "Thank You",
+            message: "Your response has been recorded successfully.",
+        };
+
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/30">
 
                 <Card className="max-w-xl w-full p-8 text-center">
 
                     <div className="text-6xl mb-6">
-                        ✅
+                        {config.icon}
                     </div>
 
                     <h2 className="text-3xl font-bold mb-3">
-                        Thank You
+                        {config.title}
                     </h2>
 
                     <p className="text-muted-foreground mb-8">
-                        Your response has been recorded successfully.
+                        {config.message}
                     </p>
 
                     <p className="text-muted-foreground">
@@ -360,31 +371,33 @@ export default function ApprovalPage() {
                     currentStage={currentStage}
                 />
 
-                <Form {...form}>
+                {formReady && (
+                    <Form {...form}>
 
-                    <WorkflowAccordion
+                        <WorkflowAccordion
 
-                        form={form}
+                            form={form}
 
-                        accordionSections={accordionSections}
+                            accordionSections={accordionSections}
 
-                        editableSections={editableSections}
+                            editableSections={editableSections}
 
-                        currentStage={currentStage}
+                            currentStage={currentStage}
 
-                        openAccordion={openAccordion}
+                            openAccordion={openAccordion}
 
-                        setOpenAccordion={setOpenAccordion}
+                            setOpenAccordion={setOpenAccordion}
 
-                        sectionFields={nestedData}
+                            sectionFields={nestedData}
 
-                        requestId={approvalQuery.data.request_id}
+                            requestId={approvalQuery.data.request_id}
 
-                        approvalMode={true}
+                            approvalMode={true}
 
-                    />
+                        />
 
-                </Form>
+                    </Form>
+                )}
 
                                 <Card className="p-6 mt-6">
 

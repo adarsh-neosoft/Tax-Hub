@@ -2,7 +2,21 @@ from workflow.engine import can_user_act as _base_can_user_act
 
 from tax_requests.models import TDSOpinion
 
-FK_FIELDS = frozenset({"company", "currency", "particular", "nature_of_service", "form_146_type", "country", "vendor_status", "bank_ifsc_code", "rbi_purpose_code", "rbi_sub_code", "external_ca",})
+FK_FIELDS = frozenset({
+    "company",
+    "currency",
+    "particular",
+    "nature_of_service",
+    "form_146_type",
+    "country",
+    "vendor_status",
+    "bank_ifsc_code",
+    "rbi_purpose_code",
+    "rbi_sub_code",
+    "external_ca",
+    "po_number",
+    "ldc_certificate",
+})
 
 
 def can_user_act_on_tds_opinion(instance, user):
