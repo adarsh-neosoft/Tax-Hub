@@ -122,6 +122,7 @@ export default function TDSOpinionFormPage() {
   const invoiceValueFc = form.watch("tds_opinion_stage.invoice_value_fc");
   const assesseableValueFc = form.watch("tds_opinion_stage.assesseable_value_fc");
   const exchangeRate = form.watch("tds_opinion_stage.exchange_rate");
+  const exchangeRateDate = form.watch("tds_opinion_stage.exchange_rate_date");
   const taxRate = form.watch("tds_opinion_stage.tax_rate");
   const grossingUpApplicable = form.watch("tds_opinion_stage.grossing_up_applicable");
   const poNpo = form.watch("master.po_npo");
@@ -136,6 +137,13 @@ export default function TDSOpinionFormPage() {
   const [copyFileFields, setCopyFileFields] = useState([]);
   const [removedFileFields, setRemovedFileFields] = useState(new Set());
   const invoiceDate = form.watch("master.invoice_date");
+
+  // Auto-populate invoice_posting_date with exchange_rate_date from TDS Opinion stage
+  useEffect(() => {
+    if (exchangeRateDate) {
+      form.setValue("invoice_posting.invoice_posting_date", exchangeRateDate);
+    }
+  }, [exchangeRateDate, form]);
 
   useEffect(() => {
     const subscription = form.watch((values, info) => {

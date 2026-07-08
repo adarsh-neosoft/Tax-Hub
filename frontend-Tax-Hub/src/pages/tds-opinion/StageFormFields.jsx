@@ -616,6 +616,42 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         }
 
         if (field.type === "date") {
+          // For invoice_posting_date in invoice_posting section, restrict to exchange_rate_date
+          const isInvoicePostingDate = sectionKey === "invoice_posting" && field.key === "invoice_posting_date";
+          // For proposed_remittance_date in bank_detail section, restrict to dates >= exchange_rate_date
+          const isProposedRemittanceDate = sectionKey === "bank_detail" && field.key === "proposed_remittance_date";
+          // For ack_date in form_146 section, restrict to dates >= invoice_date
+          const isAckDate = sectionKey === "form_146" && field.key === "ack_date";
+          // For posting_date in form_145 section, restrict to dates >= invoice_date
+          const isForm145PostingDate = sectionKey === "form_145" && field.key === "posting_date";
+          // For posting_date in payment_detail section, restrict to dates >= invoice_date
+          const isPaymentDetailPostingDate = sectionKey === "payment_detail" && field.key === "posting_date";
+          const exchangeRateDate = values?.tds_opinion_stage?.exchange_rate_date;
+          const invoiceDate = values?.master?.invoice_date;
+
+          // Disable dates based on field type
+          const disabledDays = (exchangeRateDate || invoiceDate)
+            ? (date) => {
+                const dateStr = format(date, "yyyy-MM-dd");
+                if (isInvoicePostingDate && exchangeRateDate) {
+                  return dateStr !== exchangeRateDate;
+                }
+                if (isProposedRemittanceDate && exchangeRateDate) {
+                  return dateStr < exchangeRateDate;
+                }
+                if (isAckDate && invoiceDate) {
+                  return dateStr < invoiceDate;
+                }
+                if (isForm145PostingDate && invoiceDate) {
+                  return dateStr < invoiceDate;
+                }
+                if (isPaymentDetailPostingDate && invoiceDate) {
+                  return dateStr < invoiceDate;
+                }
+                return false;
+              }
+            : undefined;
+
           return (
             <div key={field.key} className={colSpan}>
               <FormField
@@ -643,6 +679,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                           mode="single"
                           selected={f.value ? new Date(f.value) : undefined}
                           onSelect={(d) => f.onChange(d ? format(d, "yyyy-MM-dd") : "")}
+                          disabled={disabledDays}
                         />
                       </PopoverContent>
                     </Popover>
