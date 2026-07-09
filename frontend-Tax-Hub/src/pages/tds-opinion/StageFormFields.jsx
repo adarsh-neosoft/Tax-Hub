@@ -401,7 +401,6 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         break;
 
       case "download_form_146_comparison":
-        // POST to generate comparison, then download the result
         url = `/api/tax_requests/tdsopinion/${requestId}/download-form146-comparison/`;
         suggestedName = `FORM146_Comparison_${requestId}.xlsx`;
         break;
@@ -412,13 +411,23 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
 
     try {
       if (action === "download_form_146_comparison") {
-        // POST to trigger comparison generation
+        // Get the uploaded file from form state (if any)
+        const uploadedFile = values?.[sectionKey]?.form_146_attachment;
+
+        // Build FormData — include file if one was selected
+        const formData = new FormData();
+        if (uploadedFile instanceof File) {
+          formData.append("form_146_attachment", uploadedFile);
+        }
+
         const token = localStorage.getItem("token");
         const response = await fetch(url, {
           method: "POST",
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            // Do NOT set Content-Type — browser sets it automatically with boundary for FormData
           },
+          body: formData,
         });
 
         if (!response.ok) {
@@ -429,32 +438,13 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
           );
         }
 
-        // Download the blob from the response
-        const blob = await response.blob();
+        // Parse the JSON response (comparison_status, download URL, etc.)
+        const result = await response.json();
 
-        // Use showSaveFilePicker to save
-        if ("showSaveFilePicker" in window) {
-          const ext = ".xlsx";
-          const handle = await window.showSaveFilePicker({
-            suggestedName,
-            types: [{
-              description: "Excel Workbook",
-              accept: { "application/octet-stream": [ext] },
-            }],
-            excludeAcceptAllOption: true,
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-        } else {
-          // Fallback
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = suggestedName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(a.href);
+        // Download the comparison file if URL is returned
+        if (result.download_form_146_comparison) {
+          const downloadUrl = result.download_form_146_comparison;
+          await downloadFileWithDialog(downloadUrl, { suggestedName });
         }
 
         // Notify parent to refresh form data (to show updated comparison_status)

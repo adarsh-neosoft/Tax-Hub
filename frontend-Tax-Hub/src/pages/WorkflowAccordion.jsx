@@ -110,6 +110,7 @@ export default function WorkflowAccordion({
                                     values={form.watch()}
                                     onComparisonComplete={() => {
                                         queryClient?.invalidateQueries({ queryKey: ["tds-workflow-form", requestId] });
+                                        queryClient?.invalidateQueries({ queryKey: ["approval"] });
                                     }}
                                   />
                                   {editable && saveMutation && handleClear && submitSection && (

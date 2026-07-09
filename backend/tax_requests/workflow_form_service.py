@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.contenttypes.models import ContentType
 
 from workflow.engine import start_workflow
@@ -50,6 +52,7 @@ from tax_requests.constants import FILE_VALIDITY_MAP, STAGE_FILE_FIELDS
 from tax_requests.remittance_service import sync_remittance_report
 from tax_requests.workflow_permissions import FK_FIELDS, can_user_act_on_tds_opinion
 from tax_requests.email_service import send_external_ca_email
+from tax_requests.services.form146_comparison_service import run_and_save_comparison
 
 FILE_FIELDS = STAGE_FILE_FIELDS
 
@@ -66,8 +69,10 @@ def copy_master_files_from_existing(target, source_id, file_fields):
     for field_name in file_fields:
         source_file = getattr(source, field_name, None)
         if source_file:
+            # Use only the basename to avoid duplicating the upload_to path
+            # e.g. "tds_opinion/invoice/dummy.pdf" → "dummy.pdf"
             getattr(target, field_name).save(
-                source_file.name,
+                os.path.basename(source_file.name),
                 File(source_file),
                 save=False
             )
@@ -205,6 +210,14 @@ def _serialize_stage(record, section_key, user=None):
         data["no_pe_declaration_file"] = _file_field_url(
             record.no_pe_declaration_file
         )
+
+        # Include comparison data if available (auto-generated on save)
+        if stage_obj:
+            data["comparison_status"] = stage_obj.comparison_status
+            data["ack_number"] = stage_obj.ack_number
+            data["download_form_146_comparison"] = _file_field_url(
+                stage_obj.download_form_146_comparison
+            )
 
     # No stage record yet
     if stage_obj is None:
@@ -400,6 +413,11 @@ def save_workflow_form(record, user, payload, files=None):
             bank_stage = _get_or_create_stage(record, "bank_detail")
             bank_stage.form_146_type = stage_obj.form_146_type
             bank_stage.save(update_fields=["form_146_type"])
+
+        # Auto-generate Form 146 comparison when a PDF is uploaded
+        if section_key == "form_146" and stage_obj.form_146_attachment:
+            print("Form 146 attachment detected — auto-generating comparison...")
+            run_and_save_comparison(record, stage_obj)
 
         print("\n======================================")
         print("Current Section:", section_key)

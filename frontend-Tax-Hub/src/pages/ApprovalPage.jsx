@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MASTER_FIELDS, STAGE_FIELD_CONFIG } from "./tds-opinion/fieldConfig";
 import ApprovalHierarchy from "./ApprovalHierarchy";
@@ -30,6 +30,8 @@ export default function ApprovalPage() {
     const [openAccordion, setOpenAccordion] = useState("");
 
     const [completed, setCompleted] = useState(false);
+
+    const queryClient = useQueryClient();
 
     const form = useForm({
         defaultValues: {},
@@ -392,6 +394,8 @@ export default function ApprovalPage() {
                         requestId={approvalQuery.data.request_id}
 
                         approvalMode={true}
+
+                        queryClient={queryClient}
 
                     />
 

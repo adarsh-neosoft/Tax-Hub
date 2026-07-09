@@ -1,9 +1,11 @@
+import smtplib
+import traceback
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from tax_requests.models import ApprovalLink
-import traceback
 
 
 def invalidate_old_links(tds_opinion, external_ca):
@@ -170,6 +172,12 @@ def send_external_ca_email(tds_opinion):
         email.send(fail_silently=False)
         print("\nEmail sent successfully.")
         print("====================================================\n")
+
+    except smtplib.SMTPAuthenticationError:
+        print("\nEmail sending FAILED - SMTP Authentication Error")
+        traceback.print_exc()
+        print("====================================================\n")
+        raise Exception("Authentication unsuccessful")
 
     except Exception as e:
         print("\nEmail sending FAILED")

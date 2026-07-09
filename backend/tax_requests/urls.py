@@ -9,7 +9,7 @@ from tax_requests.views import (
     DownloadForm146ComparisonView,
 )
 
-from tax_requests.approval import ApprovalView
+from tax_requests.approval import ApprovalView, ApprovalUploadForm146View
 
 urlpatterns = [
     path(
@@ -46,5 +46,10 @@ urlpatterns = [
         "approval/<uuid:token>/",
         ApprovalView.as_view(),
         name="external-ca-approval",
+    ),
+    path(
+        "approval/<uuid:token>/upload-form146/",
+        ApprovalUploadForm146View.as_view(),
+        name="approval-upload-form146",
     ),
 ]

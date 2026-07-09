@@ -17,8 +17,9 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
+from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
 
 urlpatterns = [
@@ -29,6 +30,14 @@ urlpatterns = [
     ),
     path("api/workflow/", include("workflow.urls")),  # Must be before api/
     path("api/tax_requests/", include("tax_requests.urls")),
+    # Public dropdown endpoints for the External CA approval page
+    # Case-insensitive regex — matches any case (TDSRate, tdsrate, TDSRATE, etc.)
+    # Must be BEFORE the generic api.urls so they take precedence
+    re_path(
+        r"^api/masters/(?P<model_name>[a-zA-Z]+)/dropdown$",
+        PublicDropdownView.as_view(),
+        kwargs={"app_label": "masters"},
+    ),
     path("api/", include("api.urls")),
     path("api/", include("rest_framework.urls")),
 ]

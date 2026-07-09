@@ -1,6 +1,4 @@
 from datetime import datetime
-from io import BytesIO
-
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -10,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from tax_requests.constants import FILE_VALIDITY_MAP
-from tax_requests.models import TDSOpinion, Form146Stage
+from tax_requests.models import TDSOpinion, ApprovalLink, Form146Stage
 from masters.models import Currency, ExchangeRate
 from django.http import FileResponse
 
@@ -199,6 +197,23 @@ class DownloadForm146View(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    def check_permissions(self, request):
+        """
+        Allow unauthenticated access if there is a valid (unexpired) approval link
+        for this TDSOpinion — the External CA's token has already been validated
+        when they opened the approval page.
+        """
+        if not request.user.is_authenticated:
+            pk = self.kwargs.get("pk")
+            # Any valid (unexpired) approval link for this TDSOpinion is sufficient
+            has_valid_link = ApprovalLink.objects.filter(
+                tds_opinion_id=pk,
+                is_valid=True,
+            ).exists()
+            if has_valid_link:
+                return  # Skip IsAuthenticated check
+        return super().check_permissions(request)
+
     def get(self, request, pk):
 
         opinion = get_object_or_404(
@@ -223,6 +238,21 @@ class DownloadForm146ComparisonView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    def check_permissions(self, request):
+        """
+        Allow unauthenticated access if there is a valid (unexpired) approval link
+        for this TDSOpinion (same logic as DownloadForm146View).
+        """
+        if not request.user.is_authenticated:
+            pk = self.kwargs.get("pk")
+            has_valid_link = ApprovalLink.objects.filter(
+                tds_opinion_id=pk,
+                is_valid=True,
+            ).exists()
+            if has_valid_link:
+                return
+        return super().check_permissions(request)
+
     def post(self, request, pk):
 
         opinion = get_object_or_404(
@@ -236,50 +266,99 @@ class DownloadForm146ComparisonView(APIView):
             tds_opinion=opinion
         )
 
-        if not form_146_stage.form_146_attachment:
+        # If a file was uploaded in the request, save it first
+        # Try both direct field name and prefixed (workflow form pattern)
+        uploaded_file = request.FILES.get("form_146_attachment")
+        if not uploaded_file:
+            uploaded_file = request.FILES.get("form_146.form_146_attachment")
+        
+        file_was_uploaded_now = False
+        if uploaded_file:
+            form_146_stage.form_146_attachment.save(
+                uploaded_file.name,
+                uploaded_file,
+                save=True,
+            )
+            form_146_stage.refresh_from_db()
+            file_was_uploaded_now = True
+
+        # If no file was uploaded now and no existing attachment, just return current status
+        if not file_was_uploaded_now and not form_146_stage.form_146_attachment:
             return Response(
                 {
-                    "detail": "No Form 146 PDF uploaded yet. Please upload the PDF form in the 'Form 146' field and save, then try again."
+                    "success": True,
+                    "comparison_status": None,
+                    "ack_number": None,
+                    "download_form_146_comparison": None,
+                    "form_146_attachment": None,
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_200_OK,
             )
 
-        try:
-            result = generate_comparison_excel(opinion, form_146_stage)
-        except ValueError as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
+        # Generate comparison (from newly uploaded file or from existing attachment)
+        # Only regenerate if file was just uploaded or if comparison hasn't been generated yet
+        if file_was_uploaded_now or not form_146_stage.comparison_status:
+            try:
+                result = generate_comparison_excel(opinion, form_146_stage)
+            except ValueError as exc:
+                return Response(
+                    {
+                        "success": False,
+                        "comparison_status": "Error",
+                        "detail": str(exc),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            except Exception as exc:
+                return Response(
+                    {
+                        "success": False,
+                        "comparison_status": "Error",
+                        "detail": f"Comparison failed: {str(exc)}",
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # Save the comparison file to the stage
+            file_path = result["comparison_file_path"]
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+
+            form_146_stage.download_form_146_comparison.save(
+                result["filename"],
+                ContentFile(file_content),
+                save=False,
             )
-        except Exception as exc:
-            return Response(
-                {"detail": f"Comparison failed: {str(exc)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            form_146_stage.comparison_status = result["status"]
+            if result["ack_number"]:
+                form_146_stage.ack_number = result["ack_number"]
+            form_146_stage.save()
 
-        # Save the comparison file to the stage
-        file_path = result["comparison_file_path"]
-        with open(file_path, "rb") as f:
-            file_content = f.read()
-
-        form_146_stage.download_form_146_comparison.save(
-            result["filename"],
-            ContentFile(file_content),
-            save=False,
-        )
-        form_146_stage.comparison_status = result["status"]
-        if result["ack_number"]:
-            form_146_stage.ack_number = result["ack_number"]
-        form_146_stage.save()
-
-        return FileResponse(
-            BytesIO(file_content),
-            as_attachment=True,
-            filename=result["filename"],
+        # Return JSON with status and download URLs
+        return Response(
+            {
+                "success": True,
+                "comparison_status": form_146_stage.comparison_status,
+                "ack_number": form_146_stage.ack_number,
+                "download_form_146_comparison": (
+                    form_146_stage.download_form_146_comparison.url
+                    if form_146_stage.download_form_146_comparison
+                    and form_146_stage.download_form_146_comparison.name
+                    else None
+                ),
+                "form_146_attachment": (
+                    form_146_stage.form_146_attachment.url
+                    if form_146_stage.form_146_attachment
+                    and form_146_stage.form_146_attachment.name
+                    else None
+                ),
+            },
+            status=status.HTTP_200_OK,
         )
 
     def get(self, request, pk):
         """Return the previously generated comparison file, if available."""
+
         opinion = get_object_or_404(
             TDSOpinion,
             pk=pk,

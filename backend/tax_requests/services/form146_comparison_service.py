@@ -5,10 +5,12 @@ comparison Excel with Matched/Unmatched status.
 """
 import re
 import difflib
+from io import BytesIO
 from pathlib import Path
 from datetime import datetime
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 import openpyxl
 
 from tax_requests.services.form146_excel_generator import Form146ExcelGenerator, FORM146_DATA_ROWS
@@ -84,6 +86,7 @@ def _build_comparison_rows(values_dict):
             # Header row or unmapped row (e.g. duplicate SBI TTBR rate)
             # — no data to compare.
             rows.append({
+                "s_no": s_no,
                 "particulars": particulars,
                 "details": "",
                 "extracted_value": "",
@@ -95,6 +98,7 @@ def _build_comparison_rows(values_dict):
                 details = ""
             formatted_details = _format_value_display(details)
             rows.append({
+                "s_no": s_no,
                 "particulars": particulars,
                 "details": formatted_details,
                 "extracted_value": "",
@@ -102,6 +106,50 @@ def _build_comparison_rows(values_dict):
             })
 
     return rows
+
+
+def run_and_save_comparison(opinion, form_146_stage):
+    """
+    Generate the Form 146 comparison Excel and save the results
+    directly onto the form_146_stage instance.
+
+    This is called automatically when a Form 146 PDF is uploaded
+    and saved, so the comparison is ready immediately.
+
+    Args:
+        opinion: TDSOpinion instance
+        form_146_stage: Form146Stage instance (must have form_146_attachment)
+    """
+    if not form_146_stage.form_146_attachment:
+        return
+
+    try:
+        result = generate_comparison_excel(opinion, form_146_stage)
+    except Exception as exc:
+        # If comparison fails, log it but don't break the save
+        print(f"Form 146 comparison auto-generation failed: {exc}")
+        return
+
+    # Save the comparison file to the stage
+    file_path = result["comparison_file_path"]
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    form_146_stage.download_form_146_comparison.save(
+        result["filename"],
+        ContentFile(file_content),
+        save=False,
+    )
+    form_146_stage.comparison_status = result["status"]
+    if result["ack_number"]:
+        form_146_stage.ack_number = result["ack_number"]
+    form_146_stage.save(update_fields=[
+        "download_form_146_comparison",
+        "comparison_status",
+        "ack_number",
+    ])
+
+    print(f"Form 146 comparison auto-generated: {result['status']}")
 
 
 def generate_comparison_excel(opinion, form_146_stage):
@@ -197,9 +245,10 @@ def generate_comparison_excel(opinion, form_146_stage):
         cell = ws.cell(row=1, column=col_idx, value=header)
         cell.font = header_font
 
-    # Data rows
+    # Data rows — preserve original S.No. from FORM146_DATA_ROWS (blank for sub-rows)
     for row_idx, row_data in enumerate(comparison_rows, 2):
-        ws.cell(row=row_idx, column=1, value=row_idx - 1)  # S.No.
+        if row_data["s_no"] is not None:
+            ws.cell(row=row_idx, column=1, value=row_data["s_no"])
         ws.cell(row=row_idx, column=2, value=row_data["particulars"])
         ws.cell(row=row_idx, column=3, value=row_data["details"])
         ws.cell(row=row_idx, column=4, value=row_data["extracted_value"])
