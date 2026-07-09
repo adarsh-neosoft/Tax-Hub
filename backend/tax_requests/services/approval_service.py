@@ -2,7 +2,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
 from workflow.models import WorkflowInstance
-from workflow.engine import process_external_action
 from tax_requests.models import ApprovalLink, TDSOpinion
 from tax_requests.workflow_form_service import build_workflow_form_payload
 
@@ -81,6 +80,7 @@ class ApprovalService:
         """
         Approve request from External CA.
         """
+        from workflow.engine import process_external_action
 
         # Validate approval link
         approval = ApprovalService.get_approval_link(token)
@@ -146,6 +146,7 @@ class ApprovalService:
         """
         Reject request from External CA.
         """
+        from workflow.engine import process_external_action
 
         # Validate approval link
         approval = ApprovalService.get_approval_link(token)
@@ -206,6 +207,7 @@ class ApprovalService:
         """
         Return request from External CA.
         """
+        from workflow.engine import process_external_action
 
         approval = ApprovalService.get_approval_link(token)
 

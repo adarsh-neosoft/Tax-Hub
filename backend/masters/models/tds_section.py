@@ -8,12 +8,21 @@ class TDSSection(BaseModel):
         max_length=100
     )
 
+    def __str__(self):
+        return self.TDS_section
+
     model_config = {
         "encrypted_fields": [],
         "exclude_from_audit_log": [],
     }
 
     api_config = {
+
+        "dropdown_fields": [
+            "id",
+            "TDS_section",
+        ],
+
         "search_fields": [
             "TDS_section",
         ],

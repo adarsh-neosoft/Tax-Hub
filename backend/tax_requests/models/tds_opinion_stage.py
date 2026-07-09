@@ -43,7 +43,13 @@ class TDSOpinionStage(models.Model):
     exchange_rate = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     invoice_value_inr = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
     assesseable_value_inr = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
-    tds_section = models.CharField(max_length=50, null=True, blank=True, verbose_name="TDS Section")
+    tds_section = models.ForeignKey(
+        "masters.TDSSection",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="TDS Section"
+    )
     tax_rate = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="TDS Rate (%)")
     ldc_certificate = models.ForeignKey(
         "masters.LDCCertificate",

@@ -98,7 +98,7 @@ export const STAGE_FIELD_CONFIG = {
     { key: "exchange_rate", label: "Exchange Rate", type: "number" },
     { key: "invoice_value_inr", label: "Invoice Value (INR)", type: "number", disabled: true },
     { key: "assesseable_value_inr", label: "Assesseable Value (INR)", type: "number", disabled: true },
-    { key: "tds_section", label: "TDS Section", type: "text" },
+    { key: "tds_section", label: "TDS Section", type: "fk", api: "masters/TDSSection", labelFields: ["TDS_section"] },
     {
       key: "tax_rate",
       label: "TDS Rate (%)",

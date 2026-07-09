@@ -85,6 +85,13 @@ def _file_field_url(value):
     return None
 
 
+def _get_fk_display_value(record, field_name):
+    fk_obj = getattr(record, field_name, None)
+    if fk_obj:
+        return str(fk_obj)
+    return None
+
+
 def _get_tds_opinion_workflow():
     ct = ContentType.objects.get_for_model(TDSOpinion)
     return Workflow.objects.filter(

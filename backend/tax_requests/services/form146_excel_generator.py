@@ -220,8 +220,8 @@ class Form146ExcelGenerator:
                 else False
             ),
             "tds_section": (
-                opinion_stage.tds_section
-                if opinion_stage
+                str(opinion_stage.tds_section)
+                if opinion_stage and opinion_stage.tds_section
                 else ""
             ),
             "income_amount": (

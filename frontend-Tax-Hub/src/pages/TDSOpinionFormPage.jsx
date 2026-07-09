@@ -122,7 +122,6 @@ export default function TDSOpinionFormPage() {
   const invoiceValueFc = form.watch("tds_opinion_stage.invoice_value_fc");
   const assesseableValueFc = form.watch("tds_opinion_stage.assesseable_value_fc");
   const exchangeRate = form.watch("tds_opinion_stage.exchange_rate");
-  const exchangeRateDate = form.watch("tds_opinion_stage.exchange_rate_date");
   const taxRate = form.watch("tds_opinion_stage.tax_rate");
   const grossingUpApplicable = form.watch("tds_opinion_stage.grossing_up_applicable");
   const poNpo = form.watch("master.po_npo");
