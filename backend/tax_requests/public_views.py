@@ -7,6 +7,7 @@ without requiring JWT authentication.
 """
 
 from django.apps import apps
+from django.db import models
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -59,6 +60,28 @@ class PublicDropdownView(APIView):
             )
 
         qs = model_cls.objects.filter(is_deleted=False)
+
+        # Apply filter_fields from query params (e.g. ?rbi_purpose_code=5)
+        filter_fields = getattr(model_cls, "api_config", {}).get("filter_fields", [])
+        for field in filter_fields:
+            value = request.query_params.get(field)
+            if value:
+                qs = qs.filter(**{field: value})
+
+        # Support search — use search_fields from model config
+        search = request.query_params.get("search")
+        if search:
+            search_fields = getattr(model_cls, "api_config", {}).get("search_fields", [])
+            q_objects = models.Q()
+            for field_name in search_fields:
+                if "." in field_name:
+                    fk, related = field_name.split(".")
+                    q_objects |= models.Q(**{f"{fk}__{related}__icontains": search})
+                else:
+                    q_objects |= models.Q(**{f"{field_name}__icontains": search})
+            if q_objects:
+                qs = qs.filter(q_objects)
+
         dropdown_fields = getattr(model_cls, "api_config", {}).get("dropdown_fields", []) or ["id"]
 
         results = []

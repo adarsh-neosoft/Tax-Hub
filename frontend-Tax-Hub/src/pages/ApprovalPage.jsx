@@ -68,8 +68,23 @@ export default function ApprovalPage() {
 
         mutationFn: async (payload) => {
 
+            // Collect Form 146 stage fields from the form state
+            // so they persist back to the normal workflow form
+            const form146Values = form.getValues("form_146") || {};
+            const form146Payload = {};
+
+            // Only send fields that the External CA can edit
+            const editableFields = ["remarks", "ack_number", "ack_date", "udin"];
+            for (const key of editableFields) {
+                const val = form146Values[key];
+                if (val !== undefined && val !== null && val !== "") {
+                    form146Payload[key] = val;
+                }
+            }
+
             const response = await submitApproval({
                 token,
+                form_146: form146Payload,
                 ...payload,
             });
 

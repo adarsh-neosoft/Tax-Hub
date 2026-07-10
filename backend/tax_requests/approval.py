@@ -14,7 +14,7 @@ class ApprovalView(APIView):
     External CA Approval API
 
     GET  -> Load request details using approval token
-    POST -> Approve / Reject / Return (to be implemented)
+    POST -> Approve / Reject / Return
     """
 
     permission_classes = [AllowAny]
@@ -71,19 +71,6 @@ class ApprovalView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # def post(self, request, token):
-    #     """
-    #     We will implement this in the next step.
-    #     """
-
-    #     return Response(
-    #         {
-    #             "success": False,
-    #             "message": "POST API is not implemented yet.",
-    #         },
-    #         status=status.HTTP_501_NOT_IMPLEMENTED,
-    #     )
-    
     def post(self, request, token):
         """
         External CA Approve / Reject / Return
@@ -104,6 +91,13 @@ class ApprovalView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Extract Form 146 stage data submitted by External CA
+            # (ack_number, ack_date, udin, remarks)
+            # Saved inside the atomic transaction in each service method
+            form_146_data = request.data.get("form_146", {})
+            if not isinstance(form_146_data, dict):
+                form_146_data = {}
+
             # -------------------------------
             # Approve
             # -------------------------------
@@ -113,6 +107,7 @@ class ApprovalView(APIView):
                 result = ApprovalService.approve(
                     token=token,
                     remarks=remarks,
+                    form_146_data=form_146_data,
                 )
 
             # -------------------------------
@@ -124,6 +119,7 @@ class ApprovalView(APIView):
                 result = ApprovalService.reject(
                     token=token,
                     remarks=remarks,
+                    form_146_data=form_146_data,
                 )
 
             # -------------------------------
@@ -145,6 +141,7 @@ class ApprovalView(APIView):
                     token=token,
                     return_stage=return_stage,
                     remarks=remarks,
+                    form_146_data=form_146_data,
                 )
 
             else:

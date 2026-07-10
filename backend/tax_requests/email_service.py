@@ -108,19 +108,19 @@ def send_external_ca_email(tds_opinion):
     Sends approval email to External CA.
     """
 
-    print("\n====================================================")
-    print("Entered send_external_ca_email()")
-    print("====================================================")
+    print("\n====================================================", flush=True)
+    print("Entered send_external_ca_email()", flush=True)
+    print("====================================================", flush=True)
 
-    print("Request Code:", tds_opinion.request_code)
+    print("Request Code:", tds_opinion.request_code, flush=True)
 
     bank = tds_opinion.bank_detail
 
-    print("External CA:", bank.external_ca)
-    print("Form Type:", bank.form_146_type)
+    print("External CA:", bank.external_ca, flush=True)
+    print("Form Type:", bank.form_146_type, flush=True)
 
     if not bank.external_ca:
-        print("No External CA selected. Email will not be sent.")
+        print("No External CA selected. Email will not be sent.", flush=True)
         return
 
     approval = create_approval_link(

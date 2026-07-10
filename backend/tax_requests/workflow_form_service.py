@@ -419,29 +419,29 @@ def save_workflow_form(record, user, payload, files=None):
             print("Form 146 attachment detected — auto-generating comparison...")
             run_and_save_comparison(record, stage_obj)
 
-        print("\n======================================")
-        print("Current Section:", section_key)
+        print("\n======================================", flush=True)
+        print("Current Section:", section_key, flush=True)
         
         if section_key == "bank_detail":
-            print("Entered Bank Detail Stage")
-            print("Selected Form Type:", stage_obj.form_146_type)
-            print("Selected External CA:", stage_obj.external_ca)
+            print("Entered Bank Detail Stage", flush=True)
+            print("Selected Form Type:", stage_obj.form_146_type, flush=True)
+            print("Selected External CA:", stage_obj.external_ca, flush=True)
         
             if (
                 stage_obj.form_146_type
                 and stage_obj.external_ca
                 and stage_obj.form_146_type.type_15cb == "Form 146 - Part C"
             ):
-                print("Condition Matched.")
-                print("Calling send_external_ca_email()")
+                print("Condition Matched.", flush=True)
+                print("Calling send_external_ca_email()", flush=True)
                 send_external_ca_email(record)
             else:
-                print("Condition NOT Matched.")
+                print("Condition NOT Matched.", flush=True)
                 print("Form Type:",
-                      stage_obj.form_146_type.type_15cb if stage_obj.form_146_type else None)
-                print("External CA:", stage_obj.external_ca)
+                      stage_obj.form_146_type.type_15cb if stage_obj.form_146_type else None, flush=True)
+                print("External CA:", stage_obj.external_ca, flush=True)
         
-        print("======================================\n")
+        print("======================================\n", flush=True)
 
     sync_remittance_report(record)
     return build_workflow_form_payload(record, user)
