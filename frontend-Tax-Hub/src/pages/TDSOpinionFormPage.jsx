@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { api, WorkflowStatus, AuditTrail } from "iron-stack-ui";
+import { api, AuditTrail } from "iron-stack-ui";
 
 import { Form } from "@/components/ui/form.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -118,7 +118,6 @@ export default function TDSOpinionFormPage() {
 
   const bankIfscCode = form.watch("bank_detail.bank_ifsc_code");
   const form146Type = form.watch("bank_detail.form_146_type");
-
   const invoiceValueFc = form.watch("tds_opinion_stage.invoice_value_fc");
   const assesseableValueFc = form.watch("tds_opinion_stage.assesseable_value_fc");
   const exchangeRate = form.watch("tds_opinion_stage.exchange_rate");
@@ -132,12 +131,17 @@ export default function TDSOpinionFormPage() {
   const company = form.watch("master.company");
   const vendor = form.watch("master.vendor");
 
+  const [pendingAction, setPendingAction] = useState(null);
   const [existingRequestData, setExistingRequestData] = useState(null);
   const [showVendorNoteDialog, setShowVendorNoteDialog] = useState(false);
   const [validFileUrls, setValidFileUrls] = useState({});
   const [copyFileFields, setCopyFileFields] = useState([]);
   const [removedFileFields, setRemovedFileFields] = useState(new Set());
   const invoiceDate = form.watch("master.invoice_date");
+
+  // Track initial tds_opinion_stage values loaded from saved data
+  // so auto-fetch effects don't overwrite saved values on initial load
+  const initialFormValuesRef = useRef(null);
 
   // Auto-populate invoice_posting_date with exchange_rate_date from TDS Opinion stage
   useEffect(() => {
@@ -412,6 +416,19 @@ export default function TDSOpinionFormPage() {
 
   // Auto-fetch exchange rate when exchange_rate_date or currency changes in TDS Opinion stage
   useEffect(() => {
+    // Skip auto-fetch on initial form load (preserve saved exchange_rate value)
+    // Only fetch when the user actively changes date or currency
+    const initial = initialFormValuesRef.current;
+    if (
+      initial &&
+      exchangeRateDate === initial.exchange_rate_date &&
+      (tdsOpinionCurrency || null) === initial.currency
+    ) {
+      // These are the initial saved values — don't re-fetch; clear ref for next change
+      initialFormValuesRef.current = null;
+      return;
+    }
+
     // Clear exchange rate if date is cleared
     if (!exchangeRateDate) {
       form.setValue("tds_opinion_stage.exchange_rate", "", {
@@ -501,6 +518,12 @@ export default function TDSOpinionFormPage() {
     if (!formQuery.data) return;
     const data = formQuery.data.data || { master: {} };
     const formValues = nestedToFormValues(data);
+    // Store initial tds_opinion_stage values so auto-fetch doesn't overwrite saved data on load
+    const stageVals = formValues?.tds_opinion_stage || {};
+    initialFormValuesRef.current = {
+      exchange_rate_date: stageVals.exchange_rate_date || null,
+      currency: stageVals.currency || null,
+    };
     setNestedData(data);
     setStages(formQuery.data.stages || DEFAULT_STAGES);
     setAccordionSections(formQuery.data.accordion_sections || DEFAULT_ACCORDION);
@@ -553,15 +576,18 @@ export default function TDSOpinionFormPage() {
       });
     },
     onSuccess: async (res) => {
-      toast.success(isEdit ? "Saved successfully" : "Request created");
+      if (!isEdit) {
+        toast.success("Request created");
+        await queryClient.invalidateQueries({ queryKey: ["tds-workflow-form"] });
+        await queryClient.invalidateQueries({ queryKey: ["TDS Opinion"] });
+        navigateToList();
+        return;
+      }
+      // Don't show toast here — it's shown by the caller (save-only or workflow action)
       await queryClient.invalidateQueries({ queryKey: ["tds-workflow-form"] });
       await queryClient.invalidateQueries({ queryKey: ["TDS Opinion"] });
       await queryClient.invalidateQueries({ queryKey: ["record-workflow"] });
 
-      if (!isEdit) {
-        navigateToList();
-        return;
-      }
       if (res.data) {
         setNestedData(res.data.data);
         setAccordionSections(res.data.accordion_sections || DEFAULT_ACCORDION);
@@ -602,7 +628,6 @@ export default function TDSOpinionFormPage() {
 
       toast.error(detail || "Please fill all required fields.");
     },
-    // onError: (err) => toast.error(err.response?.data?.detail || "Save failed"),
   });
 
   const handleBack = useCallback(() => {
@@ -615,6 +640,70 @@ export default function TDSOpinionFormPage() {
     } else {
       form.reset(sectionFormDefaults(MASTER_FIELDS, "master"));
     }
+  };
+
+  // Combined save + workflow action handler
+  const handleWorkflowAction = (action, comment, sectionKey) => {
+    form.handleSubmit(async (values) => {
+      // Validate master section particular documents
+      if (sectionKey === "master") {
+        const errors = validateParticularDocuments(values);
+        if (errors.length) {
+          toast.error(
+            <div className="space-y-1">
+              {errors.map((error, index) => (
+                <div key={index}>{error}</div>
+              ))}
+            </div>
+          );
+          return;
+        }
+      }
+
+      setPendingAction(action); // Set after all validation passes
+
+      try {
+        // Step 1: Save form data first (this also sends email to External CA if applicable)
+        // Try saving; if email fails (no SMTP), onError shows the toast but data is
+        // already saved to DB. Proceed to advance workflow regardless, just like the
+        // old flow where Save and Approve (WorkflowStatus) were separate actions.
+        try {
+          await saveMutation.mutateAsync({ values, sectionKey });
+        } catch (saveError) {
+          const saveDetail = saveError?.response?.data?.detail || saveError.message || "";
+          // Auth error = email failed (no SMTP). Data saved, toast shown by onError.
+          // Real errors should stop here.
+          if (!saveDetail.includes("Authentication unsuccessful")) {
+            throw saveError;
+          }
+        }
+
+        // Step 2: Perform workflow action to advance to the next stage.
+        // No success toast shown here — matches old WorkflowStatus behavior.
+        // Only the auth error toast (from onError) appears when email fails.
+        const instanceId = formQuery.data?.workflow?.instance_id;
+        if (!instanceId) {
+          throw new Error("No workflow instance found");
+        }
+
+        await api.post(`/workflow/instance/${instanceId}/action/`, {
+          action,
+          comment,
+        });
+
+        // Invalidate queries and reload (no success toast — matches old flow behavior)
+        await queryClient.invalidateQueries({ queryKey: ["record-workflow"] });
+        await queryClient.invalidateQueries({ queryKey: ["tds-workflow-form", id] });
+        await queryClient.invalidateQueries({ queryKey: ["TDS Opinion"] });
+
+        setPendingAction(null);
+        window.location.reload();
+      } catch (error) {
+        setPendingAction(null);
+        const detail = error?.response?.data?.detail || error.message || "Action failed";
+        toast.error(detail);
+      }
+    })();
   };
 
   const notesData = [
@@ -751,32 +840,6 @@ export default function TDSOpinionFormPage() {
     return errors;
   };
 
-  const submitSection = (sectionKey) => {
-    form.handleSubmit((values) => {
-
-      if (sectionKey === "master") {
-        const errors = validateParticularDocuments(values);
-
-        if (errors.length) {
-          toast.error(
-          <div className="space-y-1">
-            {errors.map((error, index) => (
-              <div key={index}>{error}</div>
-            ))}
-          </div>
-        );
-          return;
-        }
-      }
-
-      saveMutation.mutate({
-        values,
-        sectionKey,
-      });
-
-    })();
-  };
-
   const submitCreate = form.handleSubmit(
     (values) => {
       const errors = validateParticularDocuments(values);
@@ -868,12 +931,12 @@ export default function TDSOpinionFormPage() {
                 poNpo={poNpo}
                 requestId={id}
                 sectionFields={nestedData}
-                submitSection={submitSection}
                 saveMutation={saveMutation}
-                handleClear={handleClear}
+                workflow={formQuery.data?.workflow}
+                onWorkflowAction={handleWorkflowAction}
+                pendingAction={pendingAction}
             />
 
-          <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
           <AuditTrail appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
         </>
       )}

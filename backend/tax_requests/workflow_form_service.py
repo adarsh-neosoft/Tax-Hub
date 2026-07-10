@@ -293,6 +293,8 @@ def build_workflow_form_payload(record, user):
             "instance_id": instance.id if instance else None,
             "status": instance.status if instance else None,
             "can_act": can_user_act_on_tds_opinion(instance, user) if instance else False,
+            "allow_return": instance.current_stage.allow_return if instance and instance.current_stage else False,
+            "allow_resubmission": getattr(instance, "workflow", None) and instance.workflow.allow_resubmission or False,
         },
         "data": stages_data,
     }
