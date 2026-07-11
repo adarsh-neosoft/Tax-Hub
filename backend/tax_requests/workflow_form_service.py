@@ -579,6 +579,34 @@ def create_tds_opinion_with_form(user, payload, files=None):
 
     workflow = _get_tds_opinion_workflow()
     if workflow:
-        start_workflow(record, user, workflow=workflow)
+        instance = start_workflow(record, user, workflow=workflow)
+
+        # Auto-approve the Initiated stage so the user lands directly in TDS Opinion stage
+        if instance and instance.current_stage:
+            from workflow.models import WorkflowAction
+
+            # Record the approval action for audit trail
+            WorkflowAction.objects.create(
+                instance=instance,
+                stage=instance.current_stage,
+                actor=user,
+                action="approve",
+                comment="[Initiated]",
+            )
+
+            # Advance to the next stage (TDS Opinion)
+            next_stage = instance.workflow.stages.filter(
+                order__gt=instance.current_stage.order
+            ).order_by("order").first()
+
+            if next_stage:
+                instance.current_stage = next_stage
+                instance.save()
+
+                # Update TDSOpinion status to reflect the new stage
+                record.status = next_stage.name
+                record.open_with = next_stage.name
+                record.save(update_fields=["status", "open_with"])
+
     sync_remittance_report(record)
     return build_workflow_form_payload(record, user)

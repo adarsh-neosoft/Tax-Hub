@@ -121,6 +121,12 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey })
       p.rbi_purpose_code =
         formValues.bank_detail.rbi_purpose_code;
     }
+    if (
+      field.key === "bank_ifsc_code" &&
+      formValues?.master?.company
+    ) {
+      p.legal_entity = formValues.master.company;
+    }
     return p;
   }, [field.dropdownParams, debouncedSearch, formValues, field.key]);
 
@@ -179,14 +185,22 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey })
                 </FormControl>
 
                 <SelectContent>
-                  {(data).map((item) => (
-                    <SelectItem
-                      key={item.id}
-                      value={String(item.id)}
-                    >
-                      {getFkLabel(item, field)}
-                    </SelectItem>
-                  ))}
+                  {data.length === 0 ? (
+                    <div className="px-3 py-6 text-sm text-muted-foreground text-center">
+                      {field.key === "bank_ifsc_code" && formValues?.master?.company
+                        ? "No bank accounts found for this company"
+                        : `No ${field.label.toLowerCase()} available`}
+                    </div>
+                  ) : (
+                    (data).map((item) => (
+                      <SelectItem
+                        key={item.id}
+                        value={String(item.id)}
+                      >
+                        {getFkLabel(item, field)}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             )}
