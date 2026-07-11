@@ -1,8 +1,6 @@
 import { Form } from "@/components/ui/form.tsx";
 import { Card } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Spinner } from "@/components/ui/spinner.tsx";
 
 import {
   Accordion,
@@ -28,9 +26,6 @@ export default function WorkflowAccordion({
     fileUrls,
     requestId,
     sectionFields,
-    submitSection,
-    saveMutation,
-    handleClear,
     approvalMode,
 }) {
 
@@ -113,26 +108,6 @@ export default function WorkflowAccordion({
                                         queryClient?.invalidateQueries({ queryKey: ["approval"] });
                                     }}
                                   />
-                                  {editable && saveMutation && handleClear && submitSection && (
-                                    <div className="flex justify-end gap-2 pt-4 border-t">
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={handleClear}
-                                        disabled={saveMutation.isPending}
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        onClick={() => submitSection(section.key)}
-                                        disabled={saveMutation.isPending}
-                                      >
-                                        {saveMutation.isPending && <Spinner className="mr-2" />}
-                                        Save
-                                      </Button>
-                                    </div>
-                                  )}
                                 </form>
                               </Form>
                             </AccordionContent>

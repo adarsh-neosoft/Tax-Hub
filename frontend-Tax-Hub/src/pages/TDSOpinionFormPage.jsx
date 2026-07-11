@@ -139,6 +139,12 @@ export default function TDSOpinionFormPage() {
   const [removedFileFields, setRemovedFileFields] = useState(new Set());
   const invoiceDate = form.watch("master.invoice_date");
 
+  // ------------------------------------------------------------------
+  // Auto-save: persist form data to the backend whenever user types
+  // ------------------------------------------------------------------
+  const autoSaveTimerRef = useRef(null);
+  const dirtySectionsRef = useRef(new Set());
+
   // Auto-populate invoice_posting_date with exchange_rate_date from TDS Opinion stage
   useEffect(() => {
     if (exchangeRateDate) {
@@ -147,11 +153,56 @@ export default function TDSOpinionFormPage() {
   }, [exchangeRateDate, form]);
 
   useEffect(() => {
+    if (!isEdit) return;
+
     const subscription = form.watch((values, info) => {
+      // Only auto-save on actual user changes
+      if (!info?.name || !info?.type) return;
+
+      // Extract section key from the field name (e.g. "tds_opinion_stage.country" => "tds_opinion_stage")
+      const parts = info.name.split(".");
+      if (parts.length < 2) return;
+      const sectionKey = parts[0];
+
+      // Only auto-save sections that are currently editable
+      if (!editableSectionsRef.current.includes(sectionKey)) return;
+
+      // Skip file fields and programmatically-set disabled/computed fields
+      const fields = sectionKey === "master" ? MASTER_FIELDS : STAGE_FIELD_CONFIG[sectionKey] || [];
+      const fieldDef = fields.find(f => f.key === parts[1]);
+      if (fieldDef?.type === "file" || fieldDef?.disabled) return;
+
+      // Track this section as dirty (needs saving)
+      dirtySectionsRef.current.add(sectionKey);
+
+      // Debounce: reset timer on every keystroke, save after 1.5s of inactivity
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
+      autoSaveTimerRef.current = setTimeout(() => {
+        // Save ALL dirty sections, not just the most recently changed one
+        const sectionsToSave = [...dirtySectionsRef.current];
+        dirtySectionsRef.current = new Set();
+
+        sectionsToSave.forEach((sectionKey) => {
+          if (!saveMutation.isPending) {
+            saveMutation.mutate({ values: form.getValues(), sectionKey, _skipToast: true });
+          }
+        });
+      }, 1500);
     });
 
-    return () => subscription.unsubscribe();
-  }, [form]);
+    return () => {
+      subscription.unsubscribe();
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [form, isEdit]);
+
+  const editableSectionsRef = useRef(editableSections);
+  editableSectionsRef.current = editableSections;
 
   useEffect(() => {
     if (!company || !vendor || isEdit) return;
@@ -552,8 +603,10 @@ export default function TDSOpinionFormPage() {
         files: scopedFiles,
       });
     },
-    onSuccess: async (res) => {
-      toast.success(isEdit ? "Saved successfully" : "Request created");
+    onSuccess: async (res, variables) => {
+      if (!variables._skipToast) {
+        toast.success(isEdit ? "Saved successfully" : "Request created");
+      }
       await queryClient.invalidateQueries({ queryKey: ["tds-workflow-form"] });
       await queryClient.invalidateQueries({ queryKey: ["TDS Opinion"] });
       await queryClient.invalidateQueries({ queryKey: ["record-workflow"] });
@@ -608,14 +661,6 @@ export default function TDSOpinionFormPage() {
   const handleBack = useCallback(() => {
     navigateToList();
   }, [navigateToList]);
-
-  const handleClear = () => {
-    if (isEdit) {
-      form.reset(nestedToFormValues(nestedData));
-    } else {
-      form.reset(sectionFormDefaults(MASTER_FIELDS, "master"));
-    }
-  };
 
   const notesData = [
     {
@@ -751,32 +796,6 @@ export default function TDSOpinionFormPage() {
     return errors;
   };
 
-  const submitSection = (sectionKey) => {
-    form.handleSubmit((values) => {
-
-      if (sectionKey === "master") {
-        const errors = validateParticularDocuments(values);
-
-        if (errors.length) {
-          toast.error(
-          <div className="space-y-1">
-            {errors.map((error, index) => (
-              <div key={index}>{error}</div>
-            ))}
-          </div>
-        );
-          return;
-        }
-      }
-
-      saveMutation.mutate({
-        values,
-        sectionKey,
-      });
-
-    })();
-  };
-
   const submitCreate = form.handleSubmit(
     (values) => {
       const errors = validateParticularDocuments(values);
@@ -841,9 +860,6 @@ export default function TDSOpinionFormPage() {
                 copiedFileFields={copyFileFields}
               />
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="ghost" onClick={handleClear} disabled={saveMutation.isPending}>
-                  Clear
-                </Button>
                 <Button type="submit" disabled={saveMutation.isPending}>
                   {saveMutation.isPending && <Spinner className="mr-2" />}
                   Submit
@@ -868,9 +884,6 @@ export default function TDSOpinionFormPage() {
                 poNpo={poNpo}
                 requestId={id}
                 sectionFields={nestedData}
-                submitSection={submitSection}
-                saveMutation={saveMutation}
-                handleClear={handleClear}
             />
 
           <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} />
