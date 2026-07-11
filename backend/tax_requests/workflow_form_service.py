@@ -143,6 +143,12 @@ def get_editable_sections(record, user):
     stage_name = instance.current_stage.name if instance.current_stage else "Initiated"
     section_key = STAGE_SECTION_KEYS.get(stage_name)
 
+    # Check if the current stage is a skipped stage — if so, the workflow
+    # should not have landed here, but just in case, don't allow editing it
+    skipped_stages = get_skipped_stage_names(record)
+    if stage_name in skipped_stages:
+        return []
+
     if stage_name == "Initiated":
         if user == record.created_by or user.is_superuser:
             sections.add("master")
@@ -154,10 +160,40 @@ def get_editable_sections(record, user):
     return sorted(sections)
 
 
-def get_visible_accordion_sections(current_stage_name):
-    """Return accordion sections for completed stages and the current stage only."""
+def get_skipped_stage_names(record):
+    """
+    Return set of workflow stage names that should be skipped/hidden
+    based on the form_146_type selected in the bank detail stage.
+    """
+    try:
+        bank = getattr(record, "bank_detail", None)
+        if bank and bank.form_146_type:
+            form_type = bank.form_146_type.type_15cb.strip().lower()
+
+            if "not required" in form_type:
+                # Form-146/145 not required → skip both Form 146 and Form 145
+                return {"Form 146 Request", "Form 145 Request"}
+
+            if "part b" in form_type or "part d" in form_type:
+                # Form 146 - Part B or Part D → skip Form 146 Request only
+                return {"Form 146 Request"}
+    except Exception:
+        pass
+
+    return set()
+
+
+def get_visible_accordion_sections(current_stage_name, record=None):
+    """Return accordion sections for completed stages and the current stage only.
+    Optionally filters out skipped stages based on form_146_type."""
     stage_name = current_stage_name if current_stage_name in WORKFLOW_STAGE_NAMES else "Initiated"
     visible_stages = set(WORKFLOW_STAGE_NAMES[: WORKFLOW_STAGE_NAMES.index(stage_name) + 1])
+
+    # If record is provided, filter out skipped stages
+    if record:
+        skipped_stages = get_skipped_stage_names(record)
+        visible_stages -= skipped_stages
+
     return [section for section in ACCORDION_SECTIONS if section["stage"] in visible_stages]
 
 
@@ -280,13 +316,22 @@ def build_workflow_form_payload(record, user):
     current_stage = get_current_stage_name(record)
     instance = _get_latest_workflow_instance(record)
 
+    # Compute skipped stages once so it's available throughout
+    skipped_stages = get_skipped_stage_names(record)
+
     stages_data = {"master": _serialize_master(record)}
     for section_key in STAGE_MODEL_FIELDS:
         stages_data[section_key] = _serialize_stage(record, section_key, user=user)
 
+    # Filter out skipped stages from the overall stage list
+    filtered_stages = [
+        s for s in WORKFLOW_STAGE_NAMES
+        if s not in skipped_stages
+    ]
+
     return {
-        "stages": WORKFLOW_STAGE_NAMES,
-        "accordion_sections": get_visible_accordion_sections(current_stage),
+        "stages": filtered_stages,
+        "accordion_sections": get_visible_accordion_sections(current_stage, record=record),
         "current_stage": current_stage,
         "editable_sections": get_editable_sections(record, user),
         "workflow": {

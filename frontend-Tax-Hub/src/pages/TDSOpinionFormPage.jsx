@@ -139,6 +139,9 @@ export default function TDSOpinionFormPage() {
   const [removedFileFields, setRemovedFileFields] = useState(new Set());
   const invoiceDate = form.watch("master.invoice_date");
 
+  // Ref to track initial form values to distinguish user interaction vs form load
+  const initialExchangeRateValues = useRef({ date: null, currency: null, rate: null });
+
   // ------------------------------------------------------------------
   // Auto-save: persist form data to the backend whenever user types
   // ------------------------------------------------------------------
@@ -493,11 +496,26 @@ export default function TDSOpinionFormPage() {
             { shouldDirty: true, shouldValidate: true }
           );
         } else {
-          form.setValue("tds_opinion_stage.exchange_rate", "", {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-          toast.error(res.data?.message || "No exchange rate found for this date and currency");
+          // Check if this fetch was triggered by form initialization (existing data load)
+          // vs. actual user interaction. During init, the date/currency match the initial values
+          // and we already have the exchange rate from saved form data — so skip the toast.
+          // For new forms (no initial values), treat it as a user change when they select values.
+          const initial = initialExchangeRateValues.current;
+          const isUserChange = (
+            (initial.date === null && initial.currency === null) || // new form, user selecting for first time
+            initial.date !== exchangeRateDate || // user changed date
+            initial.currency !== tdsOpinionCurrency // user changed currency
+          );
+
+          if (isUserChange) {
+            // User actively changed date or currency — clear and show toast
+            form.setValue("tds_opinion_stage.exchange_rate", "", {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            toast.error(res.data?.message || "No exchange rate found for this date and currency");
+          }
+          // During initial load, just keep the exchange rate from saved form data
         }
       } catch (e) {
         console.error(e);
@@ -561,6 +579,15 @@ export default function TDSOpinionFormPage() {
     const sections = formQuery.data.accordion_sections || DEFAULT_ACCORDION;
     const section = sections.find((s) => s.stage === stage);
     setOpenAccordion(section?.key || "master");
+
+    // Store initial exchange rate values to distinguish form load from user interaction
+    const tdsStage = formValues?.tds_opinion_stage || {};
+    initialExchangeRateValues.current = {
+      date: tdsStage.exchange_rate_date || null,
+      currency: tdsStage.currency || null,
+      rate: tdsStage.exchange_rate || null,
+    };
+
     form.reset(formValues);
   }, [formQuery.data, form]);
 
