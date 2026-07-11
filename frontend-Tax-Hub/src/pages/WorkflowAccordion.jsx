@@ -28,6 +28,7 @@ export default function WorkflowAccordion({
     sectionFields,
     approvalMode,
     approvalToken,
+    dynamicRequiredFields,
 }) {
 
     // Derive fields from data keys when sectionFieldsMap is not provided (e.g. approval mode)
@@ -106,6 +107,7 @@ export default function WorkflowAccordion({
                                     fileUrls={sectionFileUrls}
                                     requestId={requestId}
                                     values={form.watch()}
+                                    dynamicRequiredFields={dynamicRequiredFields}
                                     onComparisonComplete={() => {
                                         queryClient?.invalidateQueries({ queryKey: ["tds-workflow-form", requestId] });
                                         queryClient?.invalidateQueries({ queryKey: ["approval"] });

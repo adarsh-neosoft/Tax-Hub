@@ -170,10 +170,10 @@ export default function TDSOpinionFormPage() {
       // Only auto-save sections that are currently editable
       if (!editableSectionsRef.current.includes(sectionKey)) return;
 
-      // Skip file fields and programmatically-set disabled/computed fields
+      // Skip programmatically-set disabled/computed fields only (file fields are auto-saved)
       const fields = sectionKey === "master" ? MASTER_FIELDS : STAGE_FIELD_CONFIG[sectionKey] || [];
       const fieldDef = fields.find(f => f.key === parts[1]);
-      if (fieldDef?.type === "file" || fieldDef?.disabled) return;
+      if (fieldDef?.disabled) return;
 
       // Track this section as dirty (needs saving)
       dirtySectionsRef.current.add(sectionKey);
@@ -534,7 +534,8 @@ export default function TDSOpinionFormPage() {
           "/masters/particular/dropdown"
         );
 
-        setParticularOptions(response.data.results || []);
+        const d = response.data;
+        setParticularOptions(Array.isArray(d) ? d : d.results || []);
       } catch (error) {
         console.error(error);
       }
@@ -723,6 +724,41 @@ export default function TDSOpinionFormPage() {
   const title = isEdit ? "TDS Opinion" : "Create TDS Opinion";
   const isLoading = isEdit && formQuery.isPending;
 
+  // Compute which document fields are conditionally required based on the selected Particular
+  const particularRequiredFields = useMemo(() => {
+    const fields = new Set();
+
+    if (!particular) return fields;
+
+    const selectedParticular = particularOptions.find(
+      (item) => String(item.id) === String(particular)
+    );
+    const particularName = (selectedParticular?.particular_name || "").trim().toLowerCase();
+
+    if (particularName.includes("suppy of goods")) {
+      fields.add("no_pe_declaration_file");
+      fields.add("no_pe_valid_upto");
+    }
+
+    if (particularName === "supply of services") {
+      fields.add("form_10f_file");
+      fields.add("form_10f_valid_upto");
+      fields.add("no_pe_declaration_file");
+      fields.add("no_pe_valid_upto");
+      fields.add("trc_file");
+      fields.add("trc_valid_upto");
+      fields.add("contract_agreement_copy");
+      fields.add("agreement_valid_upto");
+    }
+
+    if (particularName.includes("pure reimbursement") || particularName.includes("any other income")) {
+      fields.add("proof_of_reimbursement_file");
+      fields.add("reimbursement_valid_upto");
+    }
+
+    return fields;
+  }, [particular, particularOptions]);
+
   const sectionFieldsMap = useMemo(
     () => ({
       master: MASTER_FIELDS,
@@ -757,7 +793,7 @@ export default function TDSOpinionFormPage() {
     // Helper: check if a field has a file being copied from existing request
     const hasCopiedFile = (fieldKey) => activeCopyFields.includes(fieldKey);
 
-    if (particularName === "supply of goods") {
+    if (particularName.includes("suppy of goods")) {
       if (!master.no_pe_declaration_file && !hasCopiedFile("no_pe_declaration_file")) {
         form.setError("master.no_pe_declaration_file", {
           type: "required",
@@ -885,6 +921,7 @@ export default function TDSOpinionFormPage() {
                 values={form.watch()}
                 onRemoveCopiedFile={handleRemoveCopiedFile}
                 copiedFileFields={copyFileFields}
+                dynamicRequiredFields={particularRequiredFields}
               />
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button type="submit" disabled={saveMutation.isPending}>
@@ -911,6 +948,7 @@ export default function TDSOpinionFormPage() {
                 poNpo={poNpo}
                 requestId={id}
                 sectionFields={nestedData}
+                dynamicRequiredFields={particularRequiredFields}
             />
 
           <WorkflowStatus appLabel="tax_requests" modelName="tdsopinion" objectId={id} />

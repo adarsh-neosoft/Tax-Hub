@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CalendarIcon, Trash2 } from "lucide-react";
@@ -107,7 +107,7 @@ async function downloadFileWithDialog(url, options = {}) {
   document.body.removeChild(a);
 }
 
-function FkFormField({ control, name, field, disabled, formValues, sectionKey, note }) {
+function FkFormField({ control, name, field, disabled, formValues, sectionKey, note, rules, dynamicRequiredFields }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const params = useMemo(() => {
@@ -150,6 +150,7 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey, n
     <FormField
       control={control}
       name={name}
+      rules={rules}
       render={({ field: f }) => {
         const selectedItem = (data).find(
           (item) => String(item.id) === String(f.value)
@@ -159,7 +160,7 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey, n
 
         return (
           <FormItem>
-            <FormLabel>{field.label}</FormLabel>
+            <FormLabel>{field.label}{(field.required || dynamicRequiredFields?.has(field.key)) && <span className="text-destructive ml-1">*</span>}</FormLabel>
 
             {isDisabled && displayLabel ? (
               // Show plain text display when disabled and we have a display label
@@ -312,7 +313,7 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey, n
 //     />
 //   );
 // }
-function SupplierSearchField({ control, name, field, disabled }) {
+function SupplierSearchField({ control, name, field, disabled, rules, dynamicRequiredFields }) {
   const [search, setSearch] = useState("");
   const formValue = useWatch({ control, name });
 
@@ -354,9 +355,10 @@ function SupplierSearchField({ control, name, field, disabled }) {
     <FormField
       control={control}
       name={name}
+      rules={rules}
       render={({ field: f }) => (
         <FormItem>
-          <FormLabel>{field.label}</FormLabel>
+          <FormLabel>{field.label}{(field.required || dynamicRequiredFields?.has(field.key)) && <span className="text-destructive ml-1">*</span>}</FormLabel>
 
           <div className="relative">
             <Input
@@ -402,13 +404,30 @@ function SupplierSearchField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = [], onComparisonComplete, approvalMode, approvalToken}) {
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = [], onComparisonComplete, approvalMode, approvalToken, dynamicRequiredFields}) {
 
   const [downloadingUrl, setDownloadingUrl] = useState(null);
 
   // Get setValue for auto-updating comparison status after upload in approval mode
   const formContext = useFormContext();
   const setValue = formContext?.setValue;
+
+  // Helper: check if a field is required (either statically or dynamically based on particular)
+  const isFieldRequired = useCallback((field) => {
+    return field.required || dynamicRequiredFields?.has(field.key);
+  }, [dynamicRequiredFields]);
+
+  // Helper: generate validation rules for a field based on its type and required flag
+  // File fields are excluded from rules to avoid React re-render issues with uncontrolled file inputs.
+  // File validation is handled by the backend (_validate_required_fields in engine.py).
+  const getFieldRules = (field) => {
+    if (!isFieldRequired(field)) return undefined;
+    if (field.type === "file") return undefined;
+    if (field.type === "checkbox") {
+      return { required: `Please check "${field.label}"` };
+    }
+    return { required: `${field.label} is required` };
+  };
 
   const { data: tdsRateOptions = [] } =
     useTdsRateOptions();
@@ -495,9 +514,10 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => (
                   <FormItem>
-                    <FormLabel>TDS Rate (%)</FormLabel>
+                    <FormLabel>TDS Rate (%){isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
 
                     <Input
                       type="number"
@@ -527,7 +547,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         if (field.type === "fk") {
           return (
             <div key={field.key} className={colSpan}>
-              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} sectionKey={sectionKey} note={field.note} />
+              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} sectionKey={sectionKey} note={field.note} rules={getFieldRules(field)} dynamicRequiredFields={dynamicRequiredFields} />
             </div>
           );
         }
@@ -540,6 +560,8 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                 name={name}
                 field={field}
                 disabled={disabled || field.disabled}
+                rules={getFieldRules(field)}
+                dynamicRequiredFields={dynamicRequiredFields}
               />
             </div>
           );
@@ -551,9 +573,10 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => (
                   <FormItem>
-                    <FormLabel>{field.label}</FormLabel>
+                    <FormLabel>{field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
 
                     <Select
                       value={String(f.value ?? "")}
@@ -594,12 +617,13 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => (
                   <FormItem className="flex flex-row items-center gap-3 space-y-0">
                     <FormControl>
                       <Checkbox disabled={disabled || field.disabled} checked={f.value} onCheckedChange={f.onChange} />
                     </FormControl>
-                    <FormLabel className="font-normal">{field.label}</FormLabel>
+                    <FormLabel className="font-normal">{field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
                   </FormItem>
                 )}
               />
@@ -613,9 +637,10 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => (
                   <FormItem>
-                    <FormLabel>{field.label}</FormLabel>
+                    <FormLabel>{field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
                     <FormControl>
                       <Textarea disabled={disabled || field.disabled} placeholder={field.label} {...f} />
                     </FormControl>
@@ -669,9 +694,10 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>{field.label}</FormLabel>
+                    <FormLabel>{field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -711,6 +737,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f, fieldState }) => {
                   const hasError = !!fieldState.error;
 
@@ -719,7 +746,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                       <FormLabel
                         className={hasError ? "text-destructive" : ""}
                       >
-                        {field.label}
+                        {field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}
                       </FormLabel>
 
                       {current && (
@@ -857,6 +884,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               <FormField
                 control={control}
                 name={name}
+                rules={getFieldRules(field)}
                 render={({ field: f }) => {
                   const value = f.value;
                   const isPass = value && value.toLowerCase() === "pass";
@@ -927,17 +955,16 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
               </FormItem>
             </div>
           );
-        }
-
-        return (
-          <div key={field.key} className={colSpan}>
-            <FormField
-              control={control}
-              name={name}
-              render={({ field: f }) => (
-                <FormItem>
-                  <FormLabel>{field.label}</FormLabel>
-                  <FormControl>
+        }          return (
+            <div key={field.key} className={colSpan}>
+              <FormField
+                control={control}
+                name={name}
+                rules={getFieldRules(field)}
+                render={({ field: f }) => (
+                  <FormItem>
+                    <FormLabel>{field.label}{isFieldRequired(field) && <span className="text-destructive ml-1">*</span>}</FormLabel>
+                    <FormControl>
                     <Input
                       {...f}
                       type={field.type === "number" ? "number" : "text"}
