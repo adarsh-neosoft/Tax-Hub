@@ -40,3 +40,22 @@ export async function submitApproval({
     payload
   );
 }
+
+/**
+ * Upload Form 146 PDF on the approval page.
+ * This auto-generates the comparison and returns status.
+ */
+export async function uploadForm146({ token, file }) {
+  const formData = new FormData();
+  formData.append("form_146_attachment", file);
+
+  return api.post(
+    `/tax_requests/approval/${token}/upload-form146/`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+}

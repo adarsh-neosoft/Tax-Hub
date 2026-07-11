@@ -410,6 +410,8 @@ export default function ApprovalPage() {
 
                         approvalMode={true}
 
+                        approvalToken={token}
+
                         queryClient={queryClient}
 
                     />

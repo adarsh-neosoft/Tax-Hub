@@ -5,7 +5,7 @@ import { CalendarIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "iron-stack-ui";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form.tsx";
-import { useWatch } from "react-hook-form";
+import { useWatch, useFormContext } from "react-hook-form";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { cn } from "@/utils/utils.ts";
 import { fieldName } from "./formUtils";
+import { uploadForm146 } from "../../utils/approval-api";
 
 const useTdsRateOptions = () => {
   return useQuery({
@@ -106,7 +107,7 @@ async function downloadFileWithDialog(url, options = {}) {
   document.body.removeChild(a);
 }
 
-function FkFormField({ control, name, field, disabled, formValues, sectionKey }) {
+function FkFormField({ control, name, field, disabled, formValues, sectionKey, note }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const params = useMemo(() => {
@@ -206,6 +207,9 @@ function FkFormField({ control, name, field, disabled, formValues, sectionKey })
             )}
 
             <FormMessage />
+            {note && (
+              <p className="text-xs text-muted-foreground mt-1 italic text-left">{note}</p>
+            )}
           </FormItem>
         );
       }}
@@ -398,9 +402,13 @@ function SupplierSearchField({ control, name, field, disabled }) {
   );
 }
 
-export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = [], onComparisonComplete}) {
+export default function StageFormFields({ control, sectionKey, fields, disabled, fileUrls = {}, requestId, values, onRemoveCopiedFile, copiedFileFields = [], onComparisonComplete, approvalMode, approvalToken}) {
 
   const [downloadingUrl, setDownloadingUrl] = useState(null);
+
+  // Get setValue for auto-updating comparison status after upload in approval mode
+  const formContext = useFormContext();
+  const setValue = formContext?.setValue;
 
   const { data: tdsRateOptions = [] } =
     useTdsRateOptions();
@@ -519,7 +527,7 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
         if (field.type === "fk") {
           return (
             <div key={field.key} className={colSpan}>
-              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} sectionKey={sectionKey} />
+              <FkFormField control={control} name={name} field={field} disabled={disabled || field.disabled} formValues={values} sectionKey={sectionKey} note={field.note} />
             </div>
           );
         }
@@ -766,17 +774,59 @@ export default function StageFormFields({ control, sectionKey, fields, disabled,
                           disabled={disabled || field.disabled}
                           aria-invalid={hasError}
                           onBlur={f.onBlur}
-                          onChange={(e) => {
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0] ?? null;
+
                             // If user uploads a new file for a pre-populated field, remove it from copy list
-                            if (e.target.files?.[0] && isCopiedFromExisting) {
+                            if (file && isCopiedFromExisting) {
                               onRemoveCopiedFile(field.key);
                             }
-                            f.onChange(e.target.files?.[0] ?? null);
+
+                            f.onChange(file);
+
+                            // Auto-upload Form 146 PDF in approval mode & run comparison instantly
+                            if (file && approvalMode && field.key === "form_146_attachment" && approvalToken) {
+                              try {
+                                const response = await uploadForm146({ token: approvalToken, file });
+                                const result = response.data;
+
+                                // Immediately set comparison status and ack_number from server response
+                                if (result.comparison_status && setValue) {
+                                  setValue(
+                                    fieldName(sectionKey, "comparison_status"),
+                                    result.comparison_status
+                                  );
+                                }
+                                if (result.ack_number) {
+                                  setValue(
+                                    fieldName(sectionKey, "ack_number"),
+                                    result.ack_number
+                                  );
+                                }
+
+                                toast.success("Form 146 uploaded & compared successfully!");
+
+                                // Trigger parent data refetch to sync all fields
+                                if (onComparisonComplete) {
+                                  onComparisonComplete();
+                                }
+                              } catch (err) {
+                                toast.error(
+                                  err?.response?.data?.message ||
+                                  err?.response?.data?.detail ||
+                                  "Failed to upload Form 146 PDF."
+                                );
+                              }
+                            }
                           }}
                         />
                       </FormControl>
 
                       <FormMessage />
+
+                      {field.note && (
+                        <p className="text-xs text-muted-foreground mt-1 italic text-left">{field.note}</p>
+                      )}
                     </FormItem>
                   );
                 }}

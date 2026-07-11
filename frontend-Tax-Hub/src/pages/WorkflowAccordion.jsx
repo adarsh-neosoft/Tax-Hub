@@ -27,6 +27,7 @@ export default function WorkflowAccordion({
     requestId,
     sectionFields,
     approvalMode,
+    approvalToken,
 }) {
 
     // Derive fields from data keys when sectionFieldsMap is not provided (e.g. approval mode)
@@ -97,6 +98,8 @@ export default function WorkflowAccordion({
                                 <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                                   <StageFormFields
                                     control={form.control}
+                                    approvalMode={approvalMode}
+                                    approvalToken={approvalToken}
                                     sectionKey={section.key}
                                     fields={filteredFields}
                                     disabled={!editable}
