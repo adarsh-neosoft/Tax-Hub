@@ -9,6 +9,8 @@ import { useUiConfig } from "@/utils/use-ui-config.js";
 
 import { Button } from "@/components/ui/button.tsx";
 import { Card } from "@/components/ui/card.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
+import { downloadFileWithDialog } from "../utils/download-utils";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -107,6 +109,7 @@ export default function RemittanceReportPage() {
   const [selectedRows, setSelectedRows] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [downloadingUrl, setDownloadingUrl] = useState(null);
 
   // Sync nav selection with proper deps (matching original ListView pattern)
   useEffect(() => {
@@ -148,23 +151,56 @@ export default function RemittanceReportPage() {
 
   useGridDatasource(gridApi, currentNavItem, extraParams);
 
-  // Render file URL as clickable link (just the filename)
-  const fileCellRenderer = useCallback((params) => {
-    const value = params.value;
-    if (!value) return null;
-    const fileName = value.split("/").pop();
-    return (
-      <a
-        href={`${import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || "http://127.0.0.1:8000"}${value.startsWith("/") ? "" : "/media/"}${value}`}
-        target="_blank"
-        rel="noreferrer"
-        className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80 truncate block max-w-[120px]"
-        title={fileName}
-      >
-        {fileName}
-      </a>
-    );
+  // Build full URL for a media file path
+  const getMediaUrl = useCallback((value) => {
+    // If the value is already an absolute URL, return as-is
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      return value;
+    }
+    const base = import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || "http://127.0.0.1:8000";
+    return `${base}${value.startsWith("/") ? "" : "/media/"}${value}`;
   }, []);
+
+  // Render file URL as clickable link with Save As dialog on click
+  const fileCellRenderer = useCallback(
+    (params) => {
+      const value = params.value;
+      if (!value) return null;
+      const fileName = value.split("/").pop();
+      const fullUrl = getMediaUrl(value);
+      const isDownloading = downloadingUrl === fullUrl;
+
+      return (
+        <span
+          onClick={async () => {
+            if (isDownloading) return;
+            setDownloadingUrl(fullUrl);
+            try {
+              await downloadFileWithDialog(fullUrl, { suggestedName: fileName });
+            } catch (err) {
+              if (err.name !== "AbortError") {
+                console.error("Download failed:", err);
+              }
+            } finally {
+              setDownloadingUrl((prev) => (prev === fullUrl ? null : prev));
+            }
+          }}
+          className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80 truncate block max-w-[120px] cursor-pointer inline-flex items-center gap-1"
+          title={fileName}
+        >
+          {isDownloading ? (
+            <>
+              <Spinner className="h-3 w-3" />
+              Downloading...
+            </>
+          ) : (
+            fileName
+          )}
+        </span>
+      );
+    },
+    [downloadingUrl, getMediaUrl]
+  );
 
   const columnDefs = useMemo(() => {
     const textCols = DEFAULT_COLUMNS.map((col) => {

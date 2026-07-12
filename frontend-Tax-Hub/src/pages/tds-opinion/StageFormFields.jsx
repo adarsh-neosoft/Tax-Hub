@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/utils/utils.ts";
 import { fieldName } from "./formUtils";
 import { uploadForm146 } from "../../utils/approval-api";
+import { downloadFileWithDialog } from "../../utils/download-utils";
 
 const useTdsRateOptions = () => {
   return useQuery({
@@ -54,57 +55,6 @@ function getFkLabel(item, field) {
   if (item.particular_name) return String(item.particular_name);
   if (item.currency) return String(item.currency);
   return `#${item.id}`;
-}
-
-function getFilenameFromUrl(url) {
-  const parts = url.split("/");
-  return parts[parts.length - 1] || "download";
-}
-
-async function downloadFileWithDialog(url, options = {}) {
-  const filename = options.suggestedName || getFilenameFromUrl(url);
-
-  // Build headers: include auth Bearer token for non-media URLs
-  const headers = { ...(options.headers || {}) };
-  if (!url.startsWith("/media/")) {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  }
-
-  // Try the modern File System Access API (shows native Save As dialog)
-  if ("showSaveFilePicker" in window) {
-    // Detect file type from extension to set the correct MIME filter
-    const ext = filename.includes(".") ? `.${filename.split(".").pop()}` : "";
-    const fileTypes = ext ? [{
-      description: ext === ".xlsx" ? "Excel Workbook" : `${ext.toUpperCase()} File`,
-      accept: { "application/octet-stream": [ext] },
-    }] : [];
-
-    const handle = await window.showSaveFilePicker({
-      suggestedName: filename,
-      types: fileTypes,
-      excludeAcceptAllOption: true,
-    });
-    const writable = await handle.createWritable();
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status} ${response.statusText}`);
-    }
-    const blob = await response.blob();
-    await writable.write(blob);
-    await writable.close();
-    return;
-  }
-
-  // Fallback: trigger download via anchor element
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 }
 
 function FkFormField({ control, name, field, disabled, formValues, sectionKey, note, rules, dynamicRequiredFields }) {
