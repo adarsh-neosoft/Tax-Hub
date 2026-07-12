@@ -16,6 +16,12 @@ class RemittanceReport(BaseModel):
         max_length=100
     )
 
+    status = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+    )
+
     vendor_code = models.CharField(
         max_length=100
     )
@@ -152,7 +158,8 @@ class RemittanceReport(BaseModel):
         ],
 
         "filter_fields": [
-            "vendor_name"
+            "vendor_name",
+            "status",
         ],
 
         "list_display_fields": [

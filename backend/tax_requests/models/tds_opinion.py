@@ -217,13 +217,18 @@ class TDSOpinion(BaseModel):
         default=False
     )
 
-    def save(self, *args, **kwargs): 
+    def save(self, *args, **kwargs):
+        import traceback
+
+        print("\n================ TDSOpinion.save =================")
+        print("status    :", self.status)
+        print("open_with :", self.open_with)
+        print("revert    :", self.revert)
+        traceback.print_stack(limit=12)
+
         if not self.request_code:
             last = TDSOpinion.objects.order_by("-id").first()
-            if last:
-                next_id = last.id + 1
-            else:
-                next_id = 1
+            next_id = last.id + 1 if last else 1
             self.request_code = f"TDS-{next_id:05d}"
 
         if self.company:
@@ -235,7 +240,7 @@ class TDSOpinion(BaseModel):
                 self.vendor_name = match.group(1).strip()
                 self.vendor_code = match.group(2).strip()
 
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     model_config = {
         "encrypted_fields": [],

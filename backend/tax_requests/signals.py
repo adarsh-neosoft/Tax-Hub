@@ -17,6 +17,12 @@ def sync_tds_opinion_workflow_status(sender, instance, **kwargs):
         record = TDSOpinion.objects.get(pk=instance.object_id)
     except TDSOpinion.DoesNotExist:
         return
+    
+    print(
+        "SIGNAL:",
+        instance.status,
+        instance.current_stage.name if instance.current_stage else None
+    )
 
     if instance.status == "approved":
         record.status = "Approved"
@@ -28,14 +34,43 @@ def sync_tds_opinion_workflow_status(sender, instance, **kwargs):
         record.status = "Returned"
         record.open_with = "Initiated"
         record.revert = True
+    # elif instance.current_stage:
+    #     record.status = instance.current_stage.name
+    #     record.open_with = instance.current_stage.name
+    #     record.revert = False
     elif instance.current_stage:
         record.status = instance.current_stage.name
         record.open_with = instance.current_stage.name
-        record.revert = False
+
+        last_action = instance.actions.order_by("-acted_at").first()
+
+        print("LAST ACTION =", last_action)
+
+        if last_action:
+            print("ACTION =", last_action.action)
+        else:
+            print("NO ACTION FOUND")
+
+        if last_action and last_action.action == "return":
+            print("SETTING REVERT TRUE")
+            record.revert = True
+        else:
+            print("SETTING REVERT FALSE")
+            record.revert = False
     else:
         return
 
     record.save(update_fields=["status", "open_with", "revert", "last_updated_at"])
+    record.refresh_from_db()
+    print(
+        "AFTER SAVE:",
+        record.status,
+        record.open_with,
+        record.revert,
+    )
+    
+    import traceback
+    traceback.print_stack(limit=15)
     sync_remittance_report(record)
 
 
