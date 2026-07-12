@@ -9,7 +9,7 @@ from tax_requests.views import (
     DownloadForm146ComparisonView,
 )
 
-from tax_requests.approval import ApprovalView, ApprovalUploadForm146View
+from tax_requests.approval import ApprovalView, ApprovalUploadForm146View, CancelTDSOpinionView
 
 urlpatterns = [
     path(
@@ -51,5 +51,10 @@ urlpatterns = [
         "approval/<uuid:token>/upload-form146/",
         ApprovalUploadForm146View.as_view(),
         name="approval-upload-form146",
+    ),
+    path(
+        "tdsopinion/<int:pk>/cancel/",
+        CancelTDSOpinionView.as_view(),
+        name="tdsopinion-cancel",
     ),
 ]

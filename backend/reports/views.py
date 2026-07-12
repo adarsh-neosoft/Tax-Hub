@@ -2,13 +2,23 @@ from reports.models import RemittanceReport
 from api.views import GenericListAPIView
 
 
-class RemittanceCancelledListView(GenericListAPIView):
+class RemittanceListView(GenericListAPIView):
     """
-    Custom API endpoint for cancelled/returned remittance reports.
-    Only returns records with status="Returned".
-    Matches the old project pattern of a dedicated view for cancelled requests.
+    Main Remittance Report list view.
+    Excludes cancelled requests (they appear in the Cancelled tab instead).
     """
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(revert=True)
+        return qs.exclude(status="Cancelled")
+
+
+class RemittanceCancelledListView(GenericListAPIView):
+    """
+    Custom API endpoint for cancelled remittance reports.
+    Only returns records with status="Cancelled".
+    """
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(status="Cancelled")

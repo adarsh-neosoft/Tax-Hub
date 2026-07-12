@@ -21,7 +21,7 @@ from django.urls import path, include, re_path
 
 from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
-from reports.views import RemittanceCancelledListView
+from reports.views import RemittanceCancelledListView, RemittanceListView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -39,9 +39,16 @@ urlpatterns = [
         PublicDropdownView.as_view(),
         kwargs={"app_label": "masters"},
     ),
+    # Custom list views for Remittance Report — registered before generic api.urls
+    # so they take precedence over the auto-generated list endpoint
     path(
         "api/reports/remittance-cancelled/",
         RemittanceCancelledListView.as_view(),
+        kwargs={"app_label": "reports", "model_name": "remittancereport"},
+    ),
+    path(
+        "api/reports/remittancereport/",
+        RemittanceListView.as_view(),
         kwargs={"app_label": "reports", "model_name": "remittancereport"},
     ),
     path("api/", include("api.urls")),

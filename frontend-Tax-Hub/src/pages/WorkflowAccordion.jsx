@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion.tsx";
 
 import StageFormFields from "./tds-opinion/StageFormFields";
+import CancelButton from "../components/CancelButton.jsx";
 
 
 export default function WorkflowAccordion({
@@ -113,6 +114,12 @@ export default function WorkflowAccordion({
                                         queryClient?.invalidateQueries({ queryKey: ["approval"] });
                                     }}
                                   />
+
+                                  {section.stage === "TDS Opinion" && currentStage === "TDS Opinion" && !approvalMode && (
+                                    <div className="mt-4 pt-4 border-t flex justify-end">
+                                      <CancelButton requestId={requestId} />
+                                    </div>
+                                  )}
                                 </form>
                               </Form>
                             </AccordionContent>

@@ -28,8 +28,15 @@ def sync_tds_opinion_workflow_status(sender, instance, **kwargs):
         record.status = "Approved"
         record.open_with = "Approved"
     elif instance.status == "rejected":
-        record.status = "Rejected"
-        record.open_with = "Rejected"
+        # Check if this was a cancel action (not a real reject)
+        last_action = instance.actions.order_by("-acted_at").first()
+        if last_action and last_action.action == "cancel":
+            record.status = "Cancelled"
+            record.open_with = "Cancelled"
+            record.revert = True
+        else:
+            record.status = "Rejected"
+            record.open_with = "Rejected"
     elif instance.status == "returned":
         record.status = "Returned"
         record.open_with = "Initiated"
