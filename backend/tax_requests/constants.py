@@ -145,6 +145,19 @@ STAGE_MODEL_FIELDS = {
     "approved": ["approval_remarks"],
 }
 
+# Mapping of workflow stages to their approver group names
+# Each stage can only be seen/acted upon by users belonging to the mapped group.
+STAGE_APPROVER_GROUPS = {
+    "Initiated": "AP (Account Payable)",
+    "TDS Opinion": "DT (Direct Tax)",
+    "Invoice Posting": "AP (Account Payable)",
+    "Bank Detail": "Treasury",
+    "Form 146 Request": "External CA",
+    "Form 145 Request": "DT (Direct Tax)",
+    "Payment Details": "Treasury",
+    "Close Request": "DT (Direct Tax)",
+}
+
 # Mapping of master file fields to their corresponding valid_upto fields
 FILE_VALIDITY_MAP = {
     "form_10f_file": "form_10f_valid_upto",

@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from tax_requests.constants import FILE_VALIDITY_MAP
+from tax_requests.constants import FILE_VALIDITY_MAP, STAGE_APPROVER_GROUPS, WORKFLOW_STAGE_NAMES
 from tax_requests.models import TDSOpinion, ApprovalLink, Form146Stage
 from masters.models import Currency, ExchangeRate
 from django.http import FileResponse
@@ -20,6 +20,9 @@ from tax_requests.workflow_form_service import (
     create_tds_opinion_with_form,
     save_workflow_form,
 )
+
+from api.views import GenericListAPIView
+from django.db.models import Q
 
 
 def _parse_request_payload(request):
@@ -230,6 +233,59 @@ class DownloadForm146View(APIView):
             open(file_path, "rb"),
             as_attachment=True,
             filename=file_path.name,
+        )
+
+
+class TDSOpinionListView(GenericListAPIView):
+    """
+    List view for TDS Opinion requests that filters requests based on the user's
+    group membership and the current workflow stage's approver group.
+
+    - Superusers see all requests.
+    - Non-superusers only see requests whose current `status` (which tracks the
+      active workflow stage) is mapped to one of the user's Django auth Groups.
+    - Approved/completed requests are visible to all authenticated users.
+    - Rejected / Returned requests (which go back to Initiated) are visible to
+      the group mapped to "Initiated" (AP).
+    - Records with no workflow instance (status is null) are also included.
+    """
+
+    def initial(self, request, *args, **kwargs):
+        kwargs.setdefault("app_label", "tax_requests")
+        kwargs.setdefault("model_name", "tdsopinion")
+        super().initial(request, *args, **kwargs)
+
+    def get_queryset(self):
+        qs = super().get_queryset().exclude(status="Cancelled")
+        user = self.request.user
+
+        if not user or user.is_anonymous:
+            return qs.none()
+
+        if user.is_superuser:
+            return qs
+
+        # Determine which stages the user's groups are approvers for
+        user_group_names = set(user.groups.values_list("name", flat=True))
+
+        visible_stages = set()
+        for stage_name, group_name in STAGE_APPROVER_GROUPS.items():
+            if group_name in user_group_names:
+                visible_stages.add(stage_name)
+
+        if not visible_stages:
+            return qs.none()
+
+        # Rejected / Returned requests go back to Initiated — the creator
+        # (AP group) needs to see them to fix & resubmit
+        visible_stages.add("Rejected")
+        visible_stages.add("Returned")
+
+        # Filter: status is in visible_stages, OR status is NULL/empty
+        # (null status may happen before a workflow instance is created)
+        return qs.filter(
+            Q(status__in=visible_stages)
+            | Q(status__isnull=True)
         )
 
 

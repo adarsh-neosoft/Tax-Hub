@@ -1,6 +1,7 @@
 from django.urls import path
 
 from tax_requests.views import (
+    TDSOpinionListView,
     TDSOpinionWorkflowFormCreateView,
     TDSOpinionWorkflowFormDetailView,
     CheckExistingVendorRequestView,
@@ -12,6 +13,11 @@ from tax_requests.views import (
 from tax_requests.approval import ApprovalView, ApprovalUploadForm146View, CancelTDSOpinionView
 
 urlpatterns = [
+    path(
+        "tdsopinion/",
+        TDSOpinionListView.as_view(),
+        name="tdsopinion-list",
+    ),
     path(
         "tdsopinion/workflow-form/",
         TDSOpinionWorkflowFormCreateView.as_view(),
