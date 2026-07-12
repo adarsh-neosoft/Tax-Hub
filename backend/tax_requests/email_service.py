@@ -5,6 +5,9 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from django.contrib.contenttypes.models import ContentType
+from workflow.models import WorkflowAction, WorkflowInstance
+
 from tax_requests.models import ApprovalLink
 
 
@@ -65,7 +68,7 @@ def build_approval_url(token):
     return url
 
 
-def get_email_context(tds_opinion, approval_link):
+def get_email_context(tds_opinion, approval_link, user=None):
     """
     Builds context for HTML email.
     """
@@ -74,8 +77,73 @@ def get_email_context(tds_opinion, approval_link):
 
     bank = tds_opinion.bank_detail
 
+    # Fetch workflow instance and latest action for audit trail
+    ct = ContentType.objects.get_for_model(tds_opinion.__class__)
+    workflow_instance = WorkflowInstance.objects.filter(
+        content_type=ct,
+        object_id=tds_opinion.id,
+    ).select_related("current_stage").order_by("-attempt").first()
+
+    latest_action = None
+    if workflow_instance:
+        latest_action = WorkflowAction.objects.filter(
+            instance=workflow_instance,
+        ).select_related("actor", "stage").order_by("-acted_at").first()
+
+    # Determine Previous Stage — from the latest action's stage
+    previous_stage = ""
+    if latest_action and latest_action.stage:
+        previous_stage = latest_action.stage.name
+
+    # Determine New Stage — current workflow stage
+    new_stage = ""
+    if workflow_instance and workflow_instance.current_stage:
+        new_stage = workflow_instance.current_stage.name
+    elif workflow_instance and workflow_instance.status == "approved":
+        new_stage = "Approved"
+
+    # Determine Action description
+    action = "Submitted"
+    if latest_action:
+        action_map = {
+            "approve": "Approved",
+            "reject": "Rejected",
+            "return": "Returned",
+            "cancel": "Cancelled",
+        }
+        action = action_map.get(latest_action.action, latest_action.action.capitalize())
+
+    # Determine Performed By
+    performed_by = ""
+    if latest_action and latest_action.actor:
+        performed_by = latest_action.actor.get_full_name() or latest_action.actor.username
+    elif user:
+        performed_by = user.get_full_name() or user.username
+
+    # Determine Remarks — from latest action comment or bank detail remarks
+    remarks = ""
+    if latest_action and latest_action.comment:
+        remarks = latest_action.comment
+    elif bank and bank.bank_remarks:
+        remarks = bank.bank_remarks
+
+    # Build vendor display
+    vendor_parts = []
+    if tds_opinion.vendor_name:
+        vendor_parts.append(tds_opinion.vendor_name)
+    if tds_opinion.vendor_code:
+        vendor_parts.append(f"({tds_opinion.vendor_code})")
+    vendor_display = " ".join(vendor_parts) if vendor_parts else ""
+
     context = {
         "request_id": tds_opinion.request_code,
+        "request_code": tds_opinion.request_code,
+        "vendor": vendor_display,
+        "previous_stage": previous_stage,
+        "new_stage": new_stage,
+        "action": action,
+        "performed_by": performed_by,
+        "remarks": remarks,
         "company_code": tds_opinion.company_code,
         "company_name": (
             tds_opinion.company.entity_name
@@ -85,6 +153,11 @@ def get_email_context(tds_opinion, approval_link):
         "vendor_code": tds_opinion.vendor_code,
         "vendor_name": tds_opinion.vendor_name,
         "invoice_number": tds_opinion.invoice_number,
+        "invoice_amount": (
+            str(tds_opinion.opinion_invoice_amount)
+            if tds_opinion.opinion_invoice_amount
+            else ""
+        ),
         "form_type": (
             bank.form_146_type.type_15cb
             if bank.form_146_type
@@ -103,7 +176,7 @@ def get_email_context(tds_opinion, approval_link):
     return context
 
 
-def send_external_ca_email(tds_opinion):
+def send_external_ca_email(tds_opinion, user=None):
     """
     Sends approval email to External CA.
     """
@@ -131,6 +204,7 @@ def send_external_ca_email(tds_opinion):
     context = get_email_context(
         tds_opinion,
         approval,
+        user=user,
     )
 
     print("\nRendering HTML template...")
@@ -148,6 +222,18 @@ def send_external_ca_email(tds_opinion):
         raise
 
     print("HTML template rendered successfully.")
+
+    # Save preview for debugging
+    try:
+        import os
+        preview_dir = os.path.join(settings.BASE_DIR, "logs", "email_previews")
+        os.makedirs(preview_dir, exist_ok=True)
+        preview_path = os.path.join(preview_dir, f"external_ca_preview_{tds_opinion.id}.html")
+        with open(preview_path, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"Email preview saved to: {preview_path}", flush=True)
+    except Exception as e:
+        print(f"Could not save email preview: {e}", flush=True)
 
     print("\nCreating Email Object...")
 

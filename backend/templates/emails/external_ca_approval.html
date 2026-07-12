@@ -1,130 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>External CA Approval</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>15CA/15CB Approval Request</title>
 </head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
 
-<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f4f6f8">
+<!-- Outer wrapper -->
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f0f2f5">
     <tr>
-        <td align="center" style="padding:40px 20px;">
+        <td align="center" style="padding:30px 15px;">
 
-            <table width="700" cellpadding="0" cellspacing="0"
-                   style="background:#ffffff;border-radius:8px;border:1px solid #dddddd;">
+            <!-- Main card -->
+            <table width="620" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
+                <!-- ===== HEADER / BANNER ===== -->
                 <tr>
-                    <td
-                        style="background:#0d6efd;
-                               color:#ffffff;
-                               text-align:center;
-                               padding:18px;
-                               font-size:24px;
-                               font-weight:bold;">
-                        External CA Approval Request
+                    <td bgcolor="#1a237e" style="background:linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);padding:32px 40px 28px;text-align:center;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="text-align:center;">
+                                    <!-- Company / System Logo placeholder -->
+                                    <div style="display:inline-block;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.15);margin-bottom:14px;line-height:56px;font-size:24px;color:#fff;">📋</div>
+                                    <h1 style="margin:0;font-size:22px;font-weight:600;color:#ffffff;letter-spacing:0.3px;">
+                                        15CA / 15CB Approval Request
+                                    </h1>
+                                    <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.8);line-height:22px;">
+                                        A request has been assigned to you for review and approval
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
 
+                <!-- ===== BODY CONTENT ===== -->
                 <tr>
-                    <td style="padding:30px;">
+                    <td style="padding:32px 40px 20px;">
 
-                        <p style="font-size:16px;">
+                        <!-- Greeting -->
+                        <p style="margin:0 0 6px;font-size:15px;color:#333333;font-weight:500;">
                             Dear External CA,
                         </p>
-
-                        <p style="font-size:15px;line-height:25px;">
-                            A <strong>15CA / 15CB</strong> request has been assigned to you for review.
-                            Kindly verify the request details and click the Approval Link below to
-                            approve or reject the request.
+                        <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:22px;">
+                            A <strong style="color:#1a237e;">15CA / 15CB</strong> form request requires your review. 
+                            Please find the request details below and click the portal button to proceed with 
+                            approval or rejection.
                         </p>
 
-                        <br>
-
-                        <table width="100%"
-                               cellpadding="10"
-                               cellspacing="0"
-                               style="border-collapse:collapse;border:1px solid #dddddd;">
-
-                            <tr style="background:#f5f5f5;">
-                                <td width="35%"><strong>Request ID</strong></td>
-                                <td>{{ request_id }}</td>
-                            </tr>
-
+                        <!-- ===== REQUEST DETAILS CARD ===== -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                               style="background:#f8f9fc;border-radius:8px;border:1px solid #e8ecf4;margin-bottom:28px;">
+                            
+                            <!-- Section title -->
                             <tr>
-                                <td><strong>Company</strong></td>
-                                <td>{{ company_code }} - {{ company_name }}</td>
+                                <td style="padding:14px 20px 10px;border-bottom:1px solid #e8ecf4;">
+                                    <h2 style="margin:0;font-size:13px;font-weight:600;color:#1a237e;text-transform:uppercase;letter-spacing:0.5px;">
+                                        📋 Workflow Notification
+                                    </h2>
+                                </td>
                             </tr>
 
-                            <tr style="background:#f5f5f5;">
-                                <td><strong>Vendor</strong></td>
-                                <td>{{ vendor_code }} - {{ vendor_name }}</td>
-                            </tr>
-
+                            <!-- Request ID -->
                             <tr>
-                                <td><strong>Invoice Number</strong></td>
-                                <td>{{ invoice_number }}</td>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:12px 0 10px;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Request ID</span>
+                                            </td>
+                                            <td width="60%" style="padding:12px 0 10px;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:14px;font-weight:600;color:#1a237e;">{{ request_id }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
                             </tr>
 
-                            <tr style="background:#f5f5f5;">
-                                <td><strong>Form Type</strong></td>
-                                <td>{{ form_type }}</td>
-                            </tr>
-
+                            <!-- Request Code -->
                             <tr>
-                                <td><strong>Reverted</strong></td>
-                                <td>{{ reverted }}</td>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Request Code</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:14px;font-weight:600;color:#1a237e;">{{ request_code }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
                             </tr>
+
+                            <!-- Vendor -->
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Vendor</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:14px;color:#333333;">{{ vendor }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Previous Stage -->
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Previous Stage</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:14px;color:#555555;">{{ previous_stage }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- New Stage -->
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">New Stage</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;">{{ new_stage }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Action -->
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Action</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="display:inline-block;background:#e3f2fd;color:#1565c0;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;">{{ action }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Performed by -->
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:13px;color:#777777;">Performed by</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;border-bottom:1px solid #eef0f6;">
+                                                <span style="font-size:14px;color:#333333;">{{ performed_by }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Remarks (if available) -->
+                            {% if remarks %}
+                            <tr>
+                                <td style="padding:0 20px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="40%" style="padding:10px 0;">
+                                                <span style="font-size:13px;color:#777777;">Remarks</span>
+                                            </td>
+                                            <td width="60%" style="padding:10px 0;">
+                                                <span style="font-size:14px;color:#555555;font-style:italic;">{{ remarks }}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            {% endif %}
 
                         </table>
 
-                        <br><br>
+                        <!-- ===== CTA BUTTON ===== -->
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="text-align:center;padding:0 0 24px;">
+                                    <table cellpadding="0" cellspacing="0" style="display:inline-block;">
+                                        <tr>
+                                            <td bgcolor="#1a237e" style="border-radius:8px;background:linear-gradient(135deg, #1a237e, #3949ab);">
+                                                <a href="{{ approval_link }}"
+                                                   style="display:inline-block;padding:16px 40px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;letter-spacing:0.3px;">
+                                                    🚀 &nbsp;Open 15CA/CB Portal
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
 
-                        <div style="text-align:center;">
-
-                            <a href="{{ approval_link }}"
-                               style="
-                                   background:#dc3545;
-                                   color:#ffffff;
-                                   text-decoration:none;
-                                   padding:14px 40px;
-                                   border-radius:6px;
-                                   font-size:16px;
-                                   font-weight:bold;
-                                   display:inline-block;
-                               ">
-                                Approval Link
-                            </a>
-
-                        </div>
-
-                        <br>
-
-                        <p style="font-size:14px;color:#555555;">
-                            If the button above does not work, copy and paste the following URL into your browser:
+                        <!-- Fallback text link -->
+                        <p style="margin:0 0 24px;font-size:13px;color:#999999;text-align:center;line-height:20px;">
+                            If the button above does not work, copy and paste the URL below into your browser:
                         </p>
-
-                        <p style="word-break:break-all;">
+                        <p style="margin:0 0 28px;font-size:12px;color:#666666;text-align:center;word-break:break-all;background:#f5f5f5;padding:10px 14px;border-radius:6px;font-family:monospace;">
                             {{ approval_link }}
                         </p>
 
-                        <br>
+                        <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 20px;">
 
-                        <p style="font-size:14px;color:#777777;">
-                            This approval link is intended only for the assigned External CA.
+                        <!-- Footer notes -->
+                        <p style="margin:0 0 6px;font-size:13px;color:#888888;text-align:center;line-height:20px;">
+                            This approval link is intended only for the assigned External CA.<br>
                             Please do not forward this email to anyone else.
                         </p>
-
-                        <hr>
-
-                        <p style="font-size:13px;color:#888888;text-align:center;">
-                            This is an automated email generated by the Tax Hub system.
+                        <p style="margin:0;font-size:12px;color:#aaaaaa;text-align:center;line-height:18px;">
+                            This is an automated email generated by the Tax Hub system.<br>
                             Please do not reply to this email.
                         </p>
 
                     </td>
                 </tr>
 
+                <!-- ===== FOOTER ===== -->
+                <tr>
+                    <td style="background:#f5f6fa;padding:16px 40px;text-align:center;border-top:1px solid #e8ecf4;">
+                        <p style="margin:0;font-size:11px;color:#aaaaaa;letter-spacing:0.3px;">
+                            Tax Hub &bull; Automated Notification &bull; Confidential
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+
+            <!-- Pre-header disclaimer -->
+            <table width="620" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding:12px 0 0;text-align:center;">
+                        <p style="margin:0;font-size:11px;color:#bbbbbb;">
+                            &copy; 2026 Tax Hub. All rights reserved.
+                        </p>
+                    </td>
+                </tr>
             </table>
 
         </td>

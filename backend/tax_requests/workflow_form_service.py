@@ -479,7 +479,7 @@ def save_workflow_form(record, user, payload, files=None):
             ):
                 print("Condition Matched.", flush=True)
                 print("Calling send_external_ca_email()", flush=True)
-                send_external_ca_email(record)
+                send_external_ca_email(record, user=user)
             else:
                 print("Condition NOT Matched.", flush=True)
                 print("Form Type:",
