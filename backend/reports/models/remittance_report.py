@@ -22,6 +22,11 @@ class RemittanceReport(BaseModel):
         blank=True,
     )
 
+    revert = models.BooleanField(
+        default=False,
+        verbose_name="Reverted"
+    )
+
     vendor_code = models.CharField(
         max_length=100
     )
@@ -159,7 +164,6 @@ class RemittanceReport(BaseModel):
 
         "filter_fields": [
             "vendor_name",
-            "status",
         ],
 
         "list_display_fields": [

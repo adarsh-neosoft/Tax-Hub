@@ -21,6 +21,7 @@ from django.urls import path, include, re_path
 
 from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
+from reports.views import RemittanceCancelledListView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -37,6 +38,11 @@ urlpatterns = [
         r"^api/masters/(?P<model_name>[a-zA-Z]+)/dropdown$",
         PublicDropdownView.as_view(),
         kwargs={"app_label": "masters"},
+    ),
+    path(
+        "api/reports/remittance-cancelled/",
+        RemittanceCancelledListView.as_view(),
+        kwargs={"app_label": "reports", "model_name": "remittancereport"},
     ),
     path("api/", include("api.urls")),
     path("api/", include("rest_framework.urls")),

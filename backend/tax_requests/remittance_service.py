@@ -23,12 +23,10 @@ def sync_remittance_report(tds_opinion):
     tds_inr = _dec(getattr(tds_stage, "tds_amount_inr", None) if tds_stage else None)
     net_inr = _dec(getattr(tds_stage, "net_payable_inr", None) if tds_stage else None)
 
-    report_status = "Returned" if tds_opinion.revert else tds_opinion.status
-
     defaults = {
         "request_id": tds_opinion.request_code or f"TDS-{tds_opinion.pk}",
-        # "status": tds_opinion.status,
-        "status": report_status,
+        "status": tds_opinion.status,
+        "revert": getattr(tds_opinion, "revert", False),
         "vendor_code": tds_opinion.vendor_code or "",
         "vendor_name": tds_opinion.vendor_name or tds_opinion.vendor or "",
         "gross_amount_fc": gross_fc,

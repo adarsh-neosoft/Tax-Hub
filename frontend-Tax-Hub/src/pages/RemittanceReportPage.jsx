@@ -22,6 +22,7 @@ const DEFAULT_COLUMNS = [
   { headerName: "SAP Document No.", field: "sap_document_number", filter: "agTextColumnFilter" },
   { headerName: "Invoice Number", field: "invoice_number", filter: "agTextColumnFilter" },
   { headerName: "Status", field: "status", filter: "agTextColumnFilter" },
+  { headerName: "Revert?", colId: "revert", filter: false, sortable: false, maxWidth: 100 },
   { headerName: "Form 145 Ackn.", field: "form_145_ack_number", filter: "agTextColumnFilter" },
   { headerName: "Form 146 Ackn.", field: "form_146_ack_number", filter: "agTextColumnFilter" },
   { headerName: "Payment Doc. No.", field: "payment_document_number", filter: "agTextColumnFilter" },
@@ -115,14 +116,23 @@ export default function RemittanceReportPage() {
     }
   }, [pathname, findByPath, navSelectedItem, setNavSelectedItem]);
 
+  // Use custom API endpoint for cancelled tab (matches old project pattern)
+  const currentNavItem = useMemo(() => {
+    if (activeTab === "cancelled") {
+      return {
+        ...navSelectedItem,
+        api_path: "reports/remittance-cancelled",
+        title: "Remittance Report - Cancelled",
+      };
+    }
+    return navSelectedItem;
+  }, [activeTab, navSelectedItem]);
+
   const extraParams = useMemo(() => {
     const params = { ...buildFilterParams(gridFilterModel) };
     if (searchTerm) params.search = searchTerm;
-    if (activeTab === "cancelled") {
-      params.status = "Returned";
-    }
     return params;
-  }, [searchTerm, gridFilterModel, activeTab]);
+  }, [searchTerm, gridFilterModel]);
 
   const prevParamsRef = useRef(extraParams);
   useEffect(() => {
@@ -136,7 +146,7 @@ export default function RemittanceReportPage() {
     setGridApi(params.api);
   }, []);
 
-  useGridDatasource(gridApi, navSelectedItem, extraParams);
+  useGridDatasource(gridApi, currentNavItem, extraParams);
 
   // Render file URL as clickable link (just the filename)
   const fileCellRenderer = useCallback((params) => {
@@ -162,6 +172,23 @@ export default function RemittanceReportPage() {
         return {
           ...col,
           cellRenderer: (params) => <StatusBadge value={params.value} />,
+        };
+      }
+      if (col.colId === "revert") {
+        return {
+          ...col,
+          valueGetter: (params) => params.data?.revert,
+          cellRenderer: (params) => (
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                params.value
+                  ? "text-red-600 bg-red-50 border-red-200"
+                  : "text-gray-600 bg-gray-50 border-gray-200"
+              }`}
+            >
+              {params.value ? "Yes" : "No"}
+            </span>
+          ),
         };
       }
       return col;
@@ -193,14 +220,14 @@ export default function RemittanceReportPage() {
   }, [gridApi]);
 
   const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: [navSelectedItem?.title] });
+    queryClient.invalidateQueries({ queryKey: [currentNavItem?.title] });
     if (gridApi) gridApi.purgeInfiniteCache();
-  }, [gridApi, navSelectedItem, queryClient]);
+  }, [gridApi, currentNavItem, queryClient]);
 
   const handleDownload = useCallback(() => {
-    if (!navSelectedItem?.api_path) return;
+    if (!currentNavItem?.api_path) return;
     api
-      .get(navSelectedItem.api_path + "/", { params: { download: true, ...extraParams } })
+      .get(currentNavItem.api_path + "/", { params: { download: true, ...extraParams } })
       .then((res) => {
         const blob = new Blob([res.data], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
@@ -210,21 +237,21 @@ export default function RemittanceReportPage() {
         a.click();
         URL.revokeObjectURL(url);
       });
-  }, [navSelectedItem, extraParams, activeTab]);
+  }, [currentNavItem, extraParams, activeTab]);
 
   const handleDelete = useCallback(async () => {
-    if (!selectedRows.length || !navSelectedItem?.api_path) return;
+    if (!selectedRows.length || !currentNavItem?.api_path) return;
     const count = selectedRows.length;
     if (!window.confirm(`Are you sure you want to delete ${count} record${count > 1 ? "s" : ""}?`))
       return;
     setIsDeleting(true);
     try {
       await Promise.all(
-        selectedRows.map((row) => api.delete(`${navSelectedItem.api_path}/${row.id}/`))
+        selectedRows.map((row) => api.delete(`${currentNavItem.api_path}/${row.id}/`))
       );
       toast.success(`${count} record${count > 1 ? "s" : ""} deleted`);
       setSelectedRows([]);
-      queryClient.invalidateQueries({ queryKey: [navSelectedItem.title] });
+      queryClient.invalidateQueries({ queryKey: [currentNavItem.title] });
       if (gridApi) {
         gridApi.deselectAll();
         gridApi.purgeInfiniteCache();
@@ -234,7 +261,7 @@ export default function RemittanceReportPage() {
     } finally {
       setIsDeleting(false);
     }
-  }, [selectedRows, navSelectedItem, gridApi, queryClient]);
+  }, [selectedRows, currentNavItem, gridApi, queryClient]);
 
   // Double-click opens the full workflow form inline in the remittance report
   const handleRowDoubleClick = useCallback(
