@@ -32,10 +32,10 @@ urlpatterns = [
     path("api/workflow/", include("workflow.urls")),  # Must be before api/
     path("api/tax_requests/", include("tax_requests.urls")),
     # Public dropdown endpoints for the External CA approval page
-    # Case-insensitive regex — matches any case (TDSRate, tdsrate, TDSRATE, etc.)
+    # Only matches models in the PublicDropdownView's allowed list
     # Must be BEFORE the generic api.urls so they take precedence
     re_path(
-        r"^api/masters/(?P<model_name>[a-zA-Z]+)/dropdown$",
+        r"^api/masters/(?P<model_name>(?i:tdsrate|tdssection|type15cb|externalca|currency|bank|rbipurposecode|rbipurposesubcode|supplier|country|natureofservice|legalentity|vendorstatus|particular|purchaseorder))/dropdown$",
         PublicDropdownView.as_view(),
         kwargs={"app_label": "masters"},
     ),

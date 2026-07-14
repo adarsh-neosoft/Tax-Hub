@@ -12,6 +12,9 @@ import TDSOpinionFormPage from "./pages/TDSOpinionFormPage";
 import ApprovalPage from "./pages/ApprovalPage";
 import RemittanceReportPage from "./pages/RemittanceReportPage";
 import RemittanceReportDetailPage from "./pages/RemittanceReportDetailPage";
+import DscTrackerFormPage from "./pages/DscTrackerFormPage";
+import PoaTrackerFormPage from "./pages/PoaTrackerFormPage";
+import FileAwareListView from "./pages/FileAwareListView";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +23,13 @@ const customRoutes = [
   { path: "/tds-opinion/:id/edit", element: <TDSOpinionFormPage /> },
   { path: "/remittance-report", element: <RemittanceReportPage /> },
   { path: "/remittance-report/:id/edit", element: <RemittanceReportDetailPage /> },
+  { path: "/dsc-tracker/create", element: <DscTrackerFormPage /> },
+  { path: "/dsc-tracker/:id/edit", element: <DscTrackerFormPage /> },
+  { path: "/poa-tracker/create", element: <PoaTrackerFormPage /> },
+  { path: "/poa-tracker/:id/edit", element: <PoaTrackerFormPage /> },
+  { path: "/poa-tracker", element: <FileAwareListView /> },
+  { path: "/valuation-report-management", element: <FileAwareListView /> },
+  { path: "/opinion-management", element: <FileAwareListView /> },
 ];
 
 function AppLayout() {

@@ -31,7 +31,8 @@ class Director(BaseModel):
     }
 
     api_config = {
-        "dropdown_fields": ["id", "director_name"],
+        "dropdown_fields": ["id", "director_name", "pan"],
+
         "search_fields": ["director_name", "pan"],
         "filter_fields": ["legal_entity"],
         "list_display_fields": [

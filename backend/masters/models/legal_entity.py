@@ -136,7 +136,7 @@ class LegalEntity(BaseModel):
     }
     
     api_config = {
-        "dropdown_fields": ["id", "sap_code", "entity_name"],
+        "dropdown_fields": ["entity_name", "id", "sap_code"],
         "search_fields": [
             "entity_name",
             "sap_code",

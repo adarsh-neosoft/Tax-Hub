@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 
     "tax_requests.apps.TaxRequestsConfig",
     "reports",
+    "registration",
     # Your apps (add here)
 ]
 
@@ -115,6 +116,7 @@ PROJECT_APPS = [
     "indemnity",
     "tax_requests",
     "reports",
+    "registration",
 ]
 
 FRAMEWORK_SETTINGS = {
@@ -146,6 +148,7 @@ FRAMEWORK_SETTINGS = {
             {"title": "Indemnity", "url": "indemnity/indemnitytracker", "icon": "SquareTerminal", "isActive": True},
             {"title": "Tax Requests", "url": "tax-requests/", "icon": "SquareTerminal", "isActive": True},
             {"title": "Report", "url": "reports/remittancereport", "icon": "SquareTerminal", "isActive": True},
+            {"title": "Registration", "url": "#", "icon": "FileText", "isActive": True},
             {"title": "Administration", "url": "admin/access", "icon": "Shield", "isActive": True},
             {"title": "Workflows", "url": "admin/workflows", "icon": "GitBranch", "isActive": True},
             {"title": "My Approvals", "url": "approvals", "icon": "ClipboardCheck", "isActive": True},
