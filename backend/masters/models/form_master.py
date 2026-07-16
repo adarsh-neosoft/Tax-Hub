@@ -19,7 +19,7 @@ class FormMaster(BaseModel):
     }
 
     api_config = {
-        "dropdown_fields": ["id", "form_no"],
+        "dropdown_fields": ["id", "form_no", "form_description"],
         "search_fields": [
             "form_no",
             "form_description"

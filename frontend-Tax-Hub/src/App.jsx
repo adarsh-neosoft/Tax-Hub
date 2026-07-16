@@ -15,6 +15,8 @@ import RemittanceReportDetailPage from "./pages/RemittanceReportDetailPage";
 import DscTrackerFormPage from "./pages/DscTrackerFormPage";
 import PoaTrackerFormPage from "./pages/PoaTrackerFormPage";
 import FileAwareListView from "./pages/FileAwareListView";
+import FormManagementFormPage from "./pages/FormManagementFormPage";
+import ItrStatusManagementFormPage from "./pages/ItrStatusManagementFormPage";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,10 @@ const customRoutes = [
   { path: "/poa-tracker", element: <FileAwareListView /> },
   { path: "/valuation-report-management", element: <FileAwareListView /> },
   { path: "/opinion-management", element: <FileAwareListView /> },
+  { path: "/form-management/create", element: <FormManagementFormPage /> },
+  { path: "/form-management/:id/edit", element: <FormManagementFormPage /> },
+  { path: "/itr-status-management/create", element: <ItrStatusManagementFormPage /> },
+  { path: "/itr-status-management/:id/edit", element: <ItrStatusManagementFormPage /> },
 ];
 
 function AppLayout() {

@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 
+from registration.views import FormManagementListCreateView, FormManagementDetailView
 from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
 from reports.views import RemittanceCancelledListView, RemittanceListView
@@ -50,6 +51,18 @@ urlpatterns = [
         "api/reports/remittancereport/",
         RemittanceListView.as_view(),
         kwargs={"app_label": "reports", "model_name": "remittancereport"},
+    ),
+    # Custom Form Management endpoints — registered before generic api.urls
+    # so they take precedence over the auto-generated endpoints
+    path(
+        "api/registration/formmanagement/",
+        FormManagementListCreateView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "formmanagement"},
+    ),
+    path(
+        "api/registration/formmanagement/<str:pk>/",
+        FormManagementDetailView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "formmanagement"},
     ),
     path("api/", include("api.urls")),
     path("api/", include("rest_framework.urls")),

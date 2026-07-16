@@ -2,3 +2,7 @@ from .dsc_tracker import DscTracker
 from .poa_tracker import PoaTracker
 from .opinion_management import OpinionManagement
 from .valuation_report_management import ValuationReportManagement
+from .form_management import FormManagement
+from .compliance_management import ComplianceManagement
+from .itr_status_management import ItrStatusManagement
+from .document_vault import DocumentVault
