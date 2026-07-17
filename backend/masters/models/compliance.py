@@ -35,7 +35,7 @@ class Compliance(BaseModel):
     }
 
     api_config = {
-        "dropdown_fields": ["id", "compliance_name"],
+        "dropdown_fields": ["id", "compliance_name", "frequency"],
         "search_fields": ["compliance_name"],
         "filter_fields": ["law", "vertical"],
         "list_display_fields": [

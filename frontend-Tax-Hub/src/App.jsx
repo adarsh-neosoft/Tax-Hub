@@ -17,6 +17,9 @@ import PoaTrackerFormPage from "./pages/PoaTrackerFormPage";
 import FileAwareListView from "./pages/FileAwareListView";
 import FormManagementFormPage from "./pages/FormManagementFormPage";
 import ItrStatusManagementFormPage from "./pages/ItrStatusManagementFormPage";
+import ComplianceManagementFormPage from "./pages/ComplianceManagementFormPage";
+import OpinionManagementFormPage from "./pages/OpinionManagementFormPage";
+import ValuationReportManagementFormPage from "./pages/ValuationReportManagementFormPage";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,12 @@ const customRoutes = [
   { path: "/form-management/:id/edit", element: <FormManagementFormPage /> },
   { path: "/itr-status-management/create", element: <ItrStatusManagementFormPage /> },
   { path: "/itr-status-management/:id/edit", element: <ItrStatusManagementFormPage /> },
+  { path: "/compliance-management/create", element: <ComplianceManagementFormPage /> },
+  { path: "/compliance-management/:id/edit", element: <ComplianceManagementFormPage /> },
+  { path: "/opinion-management/create", element: <OpinionManagementFormPage /> },
+  { path: "/opinion-management/:id/edit", element: <OpinionManagementFormPage /> },
+  { path: "/valuation-report-management/create", element: <ValuationReportManagementFormPage /> },
+  { path: "/valuation-report-management/:id/edit", element: <ValuationReportManagementFormPage /> },
 ];
 
 function AppLayout() {

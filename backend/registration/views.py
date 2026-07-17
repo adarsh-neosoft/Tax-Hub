@@ -1,10 +1,11 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from api.decorators import cache_model_api_response
 from api.views import GenericAPIView, _build_generic_serializer
-from registration.models import FormManagement
+from registration.models import FormManagement, ComplianceManagement
 
 
 def _get_form_management_serializer():
@@ -92,3 +93,88 @@ class FormManagementDetailView(GenericAPIView, RetrieveUpdateDestroyAPIView):
             is_deleted=True, is_active=False
         )
         return Response({"message": "Successfully deleted"})
+
+
+class ComplianceManagementListCreateView(GenericAPIView, ListCreateAPIView):
+    """Custom list/create view for ComplianceManagement with resolved related fields."""
+
+    model = ComplianceManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _build_generic_serializer(self.model)
+
+    @cache_model_api_response
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ComplianceManagementDetailView(GenericAPIView, RetrieveUpdateDestroyAPIView):
+    """Custom retrieve/update/destroy view for ComplianceManagement."""
+
+    model = ComplianceManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _build_generic_serializer(self.model)
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        self.model.objects.filter(pk=kwargs["pk"]).update(
+            is_deleted=True, is_active=False
+        )
+        return Response({"message": "Successfully deleted"})
+
+
+class FormManagementByPanView(APIView):
+    """
+    Returns the latest FormManagement records and aggregated data for a given PAN.
+    Used by the Compliance Management form to auto-populate fields.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pan_id):
+        # Fetch the latest FormManagement record for this PAN
+        latest_record = FormManagement.objects.filter(
+            pan_id=pan_id,
+            is_deleted=False,
+        ).order_by("-created_at").first()
+
+        # Fetch all FormManagement records for document links
+        form_records = FormManagement.objects.filter(
+            pan_id=pan_id,
+            is_deleted=False,
+        ).order_by("-created_at").values(
+            "id",
+            "form_no__form_no",
+            "form_description",
+            "acknowledgement_upload",
+            "form_upload",
+            "statutory_timelines",
+            "internal_timelines",
+            "actual_completion_date",
+            "status_by_user",
+        )[:10]
+
+        data = {
+            "latest": {
+                "statutory_timelines": getattr(latest_record, "statutory_timelines", None) if latest_record else None,
+                "internal_timelines": getattr(latest_record, "internal_timelines", None) if latest_record else None,
+                "actual_completion_date": getattr(latest_record, "actual_completion_date", None) if latest_record else None,
+                "status_by_user": getattr(latest_record, "status_by_user", None) if latest_record else None,
+            },
+            "documents": list(form_records),
+        }
+
+        return Response(data)

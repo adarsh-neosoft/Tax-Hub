@@ -43,7 +43,12 @@ export default function PoaTrackerFormPage() {
   const baseUrl = "poa-tracker";
   const fileRef = useRef(null);
 
-  // Fetch Forum dropdown options
+  // Fetch FK dropdown options
+  const legalEntitiesQuery = useQuery({
+    queryKey: ["legal-entities", "dropdown"],
+    queryFn: () => api.get("/masters/LegalEntity/dropdown").then((r) => r.data),
+  });
+
   const forumsQuery = useQuery({
     queryKey: ["forums", "dropdown"],
     queryFn: () => api.get("/masters/forum/dropdown").then((r) => r.data),
@@ -56,6 +61,7 @@ export default function PoaTrackerFormPage() {
     enabled: isEdit,
   });
 
+  const legalEntities = legalEntitiesQuery.data || [];
   const forums = forumsQuery.data || [];
 
   const form = useForm({
@@ -179,16 +185,36 @@ export default function PoaTrackerFormPage() {
           <Form {...form}>
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Name of Entity */}
+                {/* Name of Entity — dropdown from LegalEntity Master */}
                 <FormField
                   control={form.control}
                   name="entity_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Name of Entity</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter entity name" />
-                      </FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select Entity" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {legalEntities.length === 0 ? (
+                            <div className="p-2 text-xs text-muted-foreground">
+                              No entities found
+                            </div>
+                          ) : (
+                            legalEntities.map((le) => (
+                              <SelectItem key={le.id} value={String(le.id)}>
+                                {le.entity_name || `#${le.id}`}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

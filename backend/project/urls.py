@@ -19,7 +19,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 
-from registration.views import FormManagementListCreateView, FormManagementDetailView
+from registration.views import (
+    FormManagementListCreateView,
+    FormManagementDetailView,
+    ComplianceManagementListCreateView,
+    ComplianceManagementDetailView,
+    FormManagementByPanView,
+)
 from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
 from reports.views import RemittanceCancelledListView, RemittanceListView
@@ -63,6 +69,22 @@ urlpatterns = [
         "api/registration/formmanagement/<str:pk>/",
         FormManagementDetailView.as_view(),
         kwargs={"app_label": "registration", "model_name": "formmanagement"},
+    ),
+    # Custom Compliance Management endpoints — registered before generic api.urls
+    path(
+        "api/registration/compliancemanagement/",
+        ComplianceManagementListCreateView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "compliancemanagement"},
+    ),
+    path(
+        "api/registration/compliancemanagement/<str:pk>/",
+        ComplianceManagementDetailView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "compliancemanagement"},
+    ),
+    # Endpoint to fetch FormManagement data by PAN (for Compliance Management auto-population)
+    path(
+        "api/registration/formmanagement-by-pan/<int:pan_id>/",
+        FormManagementByPanView.as_view(),
     ),
     path("api/", include("api.urls")),
     path("api/", include("rest_framework.urls")),

@@ -209,6 +209,22 @@ export default function FormManagementFormPage() {
   const lawSections = lawSectionsQuery.data || [];
   const formMasters = formMastersQuery.data || [];
 
+  // Static options for filing type dropdown
+  const filingTypeOptions = [
+    { id: "Original", label: "Original" },
+    { id: "Revised", label: "Revised" },
+  ];
+
+  // Static options for status by user dropdown
+  const statusByUserOptions = [
+    { id: "Yet to Start", label: "Yet to Start" },
+    { id: "WIP", label: "WIP" },
+    { id: "Sent for Review", label: "Sent for Review" },
+    { id: "Reviewed", label: "Reviewed" },
+    { id: "Uploaded", label: "Uploaded" },
+  ];
+
+
   function renderSelect(fieldName, label, options, displayKey, required) {
     return (
       <FormField
@@ -362,8 +378,8 @@ export default function FormManagementFormPage() {
                   )}
                 />
 
-                {/* Filing Type */}
-                {renderTextField("filing_type", "Filing Type", "Enter filing type")}
+                {/* Filing Type — dropdown with Original / Revised */}
+                {renderSelect("filing_type", "Filing Type", filingTypeOptions, "label", false)}
 
                 {/* Acknowledgement Upload */}
                 <FormField
@@ -410,8 +426,8 @@ export default function FormManagementFormPage() {
                 {/* Actual Completion Date */}
                 {renderDateField("actual_completion_date", "Actual Completion Date")}
 
-                {/* Status by User */}
-                {renderTextField("status_by_user", "Status by User", "Enter status")}
+                {/* Status by User — dropdown with predefined statuses */}
+                {renderSelect("status_by_user", "Status by User", statusByUserOptions, "label", false)}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">

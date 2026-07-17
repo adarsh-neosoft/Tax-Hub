@@ -45,12 +45,11 @@ class ValuationReportManagement(BaseModel):
         verbose_name="Attachment (Download)",
     )
 
-    team_member_involved = models.ForeignKey(
+    team_members_involved = models.ManyToManyField(
         "masters.UserMaster",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        verbose_name="Team Member Involved",
+        verbose_name="Team Members Involved",
+        help_text="Select multiple team members from User Master",
     )
 
     model_config = {
@@ -69,7 +68,6 @@ class ValuationReportManagement(BaseModel):
         "filter_fields": [
             "entity",
             "purpose",
-            "team_member_involved",
         ],
         "list_display_fields": [
             "name_of_firm_counsel",
@@ -77,7 +75,7 @@ class ValuationReportManagement(BaseModel):
             "purpose.law_name",
             "date_of_report",
             "attachment",
-            "team_member_involved.employee_name",
+            "team_members_involved",
         ],
         "form_display_fields": [
             "name_of_firm_counsel",
@@ -85,12 +83,11 @@ class ValuationReportManagement(BaseModel):
             "purpose",
             "date_of_report",
             "attachment",
-            "team_member_involved",
+            "team_members_involved",
         ],
         "include_related_field_values": [
             "entity.entity_name",
             "purpose.law_name",
-            "team_member_involved.employee_name",
         ],
     }
 

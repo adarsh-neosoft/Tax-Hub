@@ -11,11 +11,13 @@ def poa_repository_upload_to(instance, filename):
 
 class PoaTracker(BaseModel):
 
-    entity_name = models.CharField(
-        max_length=255,
-        blank=True,
+    entity_name = models.ForeignKey(
+        "masters.LegalEntity",
+        on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         verbose_name="Name of Entity",
+        help_text="Select entity from Legal Entity Master",
     )
 
     poa_holder_name = models.CharField(
@@ -67,6 +69,7 @@ class PoaTracker(BaseModel):
     api_config = {
         "dropdown_fields": [
             "id",
+            "entity_name",
             "forum",
         ],
         "search_fields": [
@@ -75,10 +78,11 @@ class PoaTracker(BaseModel):
             "pan"
         ],
         "filter_fields": [
+            "entity_name",
             "forum",
         ],
         "list_display_fields": [
-            "entity_name",
+            "entity_name.entity_name",
             "poa_holder_name",
             "forum.forum_name",
             "pan",
@@ -96,6 +100,7 @@ class PoaTracker(BaseModel):
             "poa_repository",
         ],
         "include_related_field_values": [
+            "entity_name.entity_name",
             "forum.forum_name",
         ],
     }
@@ -115,6 +120,12 @@ class PoaTracker(BaseModel):
         verbose_name_plural = "POA Tracker"
 
     def save(self, *args, **kwargs):
+        # Auto-populate PAN from selected LegalEntity
+        if self.entity_name_id:
+            le = self.entity_name
+            if le and le.pan:
+                self.pan = le.pan
+
         # Normalize file paths: strip MEDIA_ROOT prefix so Django generates correct URLs
         for field in self._meta.get_fields():
             if isinstance(field, models.FileField):
@@ -124,4 +135,6 @@ class PoaTracker(BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.entity_name or f"POA #{self.id}"
+        if self.entity_name_id:
+            return str(self.entity_name)
+        return f"POA #{self.id}"

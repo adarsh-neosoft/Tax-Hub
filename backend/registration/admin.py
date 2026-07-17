@@ -7,7 +7,7 @@ from registration.models import ValuationReportManagement
 from registration.models import FormManagement
 from registration.models import ComplianceManagement
 from registration.models import ItrStatusManagement
-from registration.models import DocumentVault
+from registration.models import DocumentVault, TaskTracker
 
 admin.site.register(DscTracker)
 admin.site.register(PoaTracker)
@@ -17,3 +17,4 @@ admin.site.register(FormManagement)
 admin.site.register(ComplianceManagement)
 admin.site.register(ItrStatusManagement)
 admin.site.register(DocumentVault)
+admin.site.register(TaskTracker)

@@ -18,12 +18,11 @@ class OpinionManagement(BaseModel):
         verbose_name="Name of Entity",
     )
 
-    team_member_involved = models.ForeignKey(
+    team_members_involved = models.ManyToManyField(
         "masters.UserMaster",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        verbose_name="Team member involved",
+        verbose_name="Team Members Involved",
+        help_text="Select multiple team members from User Master",
     )
 
     name_of_counsel_firm = models.CharField(
@@ -60,7 +59,6 @@ class OpinionManagement(BaseModel):
         "dropdown_fields": [
             "id",
             "entity",
-            "team_member_involved",
         ],
         "search_fields": [
             "name_of_counsel_firm",
@@ -68,7 +66,6 @@ class OpinionManagement(BaseModel):
         ],
         "filter_fields": [
             "entity",
-            "team_member_involved",
         ],
         "list_display_fields": [
             "entity",
@@ -76,11 +73,11 @@ class OpinionManagement(BaseModel):
             "purpose",
             "date_of_opinion",
             "attachment",
-            "team_member_involved",
+            "team_members_involved",
         ],
         "form_display_fields": [
             "entity",
-            "team_member_involved",
+            "team_members_involved",
             "name_of_counsel_firm",
             "purpose",
             "date_of_opinion",
@@ -88,7 +85,6 @@ class OpinionManagement(BaseModel):
         ],
         "include_related_field_values": [
             "entity.entity_name",
-            "team_member_involved.employee_name",
         ],
     }
 

@@ -26,11 +26,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
 import { Calendar } from "@/components/ui/calendar.tsx";
 import { cn } from "@/utils/utils.ts";
 
 const API_PATH = "registration/itrstatusmanagement";
+
+// Static options for ITR Form dropdown
+const itrFormOptions = [
+  { id: "ITR 5", label: "ITR 5" },
+  { id: "ITR 6", label: "ITR 6" },
+  { id: "ITR 7", label: "ITR 7" },
+];
+
+// Static options for Filing Type dropdown
+const filingTypeOptions = [
+  { id: "Original", label: "Original" },
+  { id: "Revised", label: "Revised" },
+  { id: "Updated", label: "Updated" },
+  { id: "Modified", label: "Modified" },
+];
+
+// Static options for Status by User dropdown
+const statusByUserOptions = [
+  { id: "Yet to Start", label: "Yet to Start" },
+  { id: "WIP", label: "WIP" },
+  { id: "Sent for Review", label: "Sent for Review" },
+  { id: "Reviewed", label: "Reviewed" },
+  { id: "Uploaded", label: "Uploaded" },
+];
 
 export default function ItrStatusManagementFormPage() {
   const { id } = useParams();
@@ -41,25 +69,29 @@ export default function ItrStatusManagementFormPage() {
   const isEdit = Boolean(id);
   const baseUrl = "itr-status-management";
 
-  // Fetch all FK dropdown options
-  const periodsQuery = useQuery({
-    queryKey: ["periods", "dropdown"],
-    queryFn: () => api.get("/masters/period/dropdown").then((r) => r.data),
+  // Fetch FK dropdown options
+  const financialYearsQuery = useQuery({
+    queryKey: ["financial-years", "dropdown"],
+    queryFn: () =>
+      api.get("/masters/financialyear/dropdown").then((r) => r.data),
+  });
+
+  const assessmentYearsQuery = useQuery({
+    queryKey: ["assessment-years", "dropdown"],
+    queryFn: () =>
+      api.get("/masters/assessmentyear/dropdown").then((r) => r.data),
   });
 
   const legalEntitiesQuery = useQuery({
     queryKey: ["legal-entities", "dropdown"],
-    queryFn: () => api.get("/masters/LegalEntity/dropdown").then((r) => r.data),
+    queryFn: () =>
+      api.get("/masters/LegalEntity/dropdown").then((r) => r.data),
   });
 
   const lawSectionsQuery = useQuery({
     queryKey: ["law-sections", "dropdown"],
-    queryFn: () => api.get("/masters/LawSection/dropdown").then((r) => r.data),
-  });
-
-  const formMastersQuery = useQuery({
-    queryKey: ["form-masters", "dropdown"],
-    queryFn: () => api.get("/masters/FormMaster/dropdown").then((r) => r.data),
+    queryFn: () =>
+      api.get("/masters/LawSection/dropdown").then((r) => r.data),
   });
 
   // Fetch existing record for edit mode
@@ -91,13 +123,19 @@ export default function ItrStatusManagementFormPage() {
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      financial_year: recordQuery.data.financial_year ? String(recordQuery.data.financial_year) : "",
-      assessment_year: recordQuery.data.assessment_year ? String(recordQuery.data.assessment_year) : "",
+      financial_year: recordQuery.data.financial_year
+        ? String(recordQuery.data.financial_year)
+        : "",
+      assessment_year: recordQuery.data.assessment_year
+        ? String(recordQuery.data.assessment_year)
+        : "",
       pan: recordQuery.data.pan ? String(recordQuery.data.pan) : "",
       legal_entity: recordQuery.data.legal_entity || "",
-      compliance_section: recordQuery.data.compliance_section ? String(recordQuery.data.compliance_section) : "",
+      compliance_section: recordQuery.data.compliance_section
+        ? String(recordQuery.data.compliance_section)
+        : "",
       filing_type: recordQuery.data.filing_type || "",
-      itr_form: recordQuery.data.itr_form ? String(recordQuery.data.itr_form) : "",
+      itr_form: recordQuery.data.itr_form || "",
       acknowledgement_upload: null,
       itr_form_upload: null,
       statutory_timelines: recordQuery.data.statutory_timelines || "",
@@ -146,7 +184,9 @@ export default function ItrStatusManagementFormPage() {
       return api.post(`/${API_PATH}/`, data);
     },
     onSuccess: () => {
-      toast.success(`ITR Status ${isEdit ? "updated" : "created"} successfully`);
+      toast.success(
+        `ITR Status ${isEdit ? "updated" : "created"} successfully`
+      );
       queryClient.invalidateQueries({ queryKey: ["itrstatusmanagement"] });
       navigateToList();
     },
@@ -161,7 +201,9 @@ export default function ItrStatusManagementFormPage() {
   });
 
   const onSubmit = form.handleSubmit((values) => {
-    const hasFile = values.acknowledgement_upload instanceof File || values.itr_form_upload instanceof File;
+    const hasFile =
+      values.acknowledgement_upload instanceof File ||
+      values.itr_form_upload instanceof File;
 
     if (hasFile) {
       const formData = new FormData();
@@ -178,8 +220,8 @@ export default function ItrStatusManagementFormPage() {
       const payload = {};
       for (const [key, value] of Object.entries(values)) {
         if (value === "" || value === null || value === undefined) continue;
-        // Don't send null file when no new file is selected
-        if (key === "acknowledgement_upload" || key === "itr_form_upload") continue;
+        if (key === "acknowledgement_upload" || key === "itr_form_upload")
+          continue;
         payload[key] = value;
       }
       mutation.mutate(payload);
@@ -189,10 +231,10 @@ export default function ItrStatusManagementFormPage() {
   const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit ? "Edit ITR Status" : "Create ITR Status";
 
-  const periods = periodsQuery.data || [];
+  const financialYears = financialYearsQuery.data || [];
+  const assessmentYears = assessmentYearsQuery.data || [];
   const legalEntities = legalEntitiesQuery.data || [];
   const lawSections = lawSectionsQuery.data || [];
-  const formMasters = formMastersQuery.data || [];
 
   function renderSelect(fieldName, label, options, displayKey, required) {
     return (
@@ -216,7 +258,9 @@ export default function ItrStatusManagementFormPage() {
               </FormControl>
               <SelectContent>
                 {options.length === 0 ? (
-                  <div className="p-2 text-xs text-muted-foreground">No options found</div>
+                  <div className="p-2 text-xs text-muted-foreground">
+                    No options found
+                  </div>
                 ) : (
                   options.map((opt) => (
                     <SelectItem key={opt.id} value={String(opt.id)}>
@@ -242,7 +286,10 @@ export default function ItrStatusManagementFormPage() {
           <FormItem>
             <FormLabel>{label}</FormLabel>
             <FormControl>
-              <Input {...field} placeholder={placeholder || `Enter ${label}`} />
+              <Input
+                {...field}
+                placeholder={placeholder || `Enter ${label}`}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -296,7 +343,12 @@ export default function ItrStatusManagementFormPage() {
   return (
     <div className="p-4">
       <div className="flex items-center mb-4">
-        <Button variant="ghost" size="icon" onClick={navigateToList} className="mr-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={navigateToList}
+          className="mr-3"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h2 className="text-xl font-bold">{title}</h2>
@@ -309,13 +361,23 @@ export default function ItrStatusManagementFormPage() {
           <Form {...form}>
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Financial Year */}
-                {renderSelect("financial_year", "Financial Year", periods, "category")}
+                {/* Financial Year — dropdown from FinancialYear Master */}
+                {renderSelect(
+                  "financial_year",
+                  "Financial Year",
+                  financialYears,
+                  "financial_year"
+                )}
 
-                {/* Assessment Year */}
-                {renderSelect("assessment_year", "Assessment Year", periods, "category")}
+                {/* Assessment Year — dropdown from AssessmentYear Master */}
+                {renderSelect(
+                  "assessment_year",
+                  "Assessment Year",
+                  assessmentYears,
+                  "assessment_year"
+                )}
 
-                {/* PAN — shows PAN number from LegalEntity */}
+                {/* PAN — dropdown from LegalEntity Master */}
                 {renderSelect("pan", "PAN", legalEntities, "pan")}
 
                 {/* Legal Entity — auto-filled from PAN */}
@@ -339,13 +401,23 @@ export default function ItrStatusManagementFormPage() {
                 />
 
                 {/* Compliance Section */}
-                {renderSelect("compliance_section", "Compliance Section", lawSections, "section_2025")}
+                {renderSelect(
+                  "compliance_section",
+                  "Compliance Section",
+                  lawSections,
+                  "section_2025"
+                )}
 
-                {/* Filing Type */}
-                {renderTextField("filing_type", "Filing Type", "Enter filing type")}
+                {/* Filing Type — dropdown: Original, Revised, Updated, Modified */}
+                {renderSelect(
+                  "filing_type",
+                  "Filing Type",
+                  filingTypeOptions,
+                  "label"
+                )}
 
-                {/* ITR Form */}
-                {renderSelect("itr_form", "ITR Form", formMasters, "form_no")}
+                {/* ITR Form — dropdown: ITR 5, ITR 6, ITR 7 */}
+                {renderSelect("itr_form", "ITR Form", itrFormOptions, "label")}
 
                 {/* Acknowledgement Upload */}
                 <FormField
@@ -357,7 +429,9 @@ export default function ItrStatusManagementFormPage() {
                       <FormControl>
                         <Input
                           type="file"
-                          onChange={(e) => field.onChange(e.target.files?.[0] ?? null)}
+                          onChange={(e) =>
+                            field.onChange(e.target.files?.[0] ?? null)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -375,7 +449,9 @@ export default function ItrStatusManagementFormPage() {
                       <FormControl>
                         <Input
                           type="file"
-                          onChange={(e) => field.onChange(e.target.files?.[0] ?? null)}
+                          onChange={(e) =>
+                            field.onChange(e.target.files?.[0] ?? null)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -390,10 +466,18 @@ export default function ItrStatusManagementFormPage() {
                 {renderDateField("internal_timelines", "Internal Timelines")}
 
                 {/* Actual Completion Date */}
-                {renderDateField("actual_completion_date", "Actual Completion Date")}
+                {renderDateField(
+                  "actual_completion_date",
+                  "Actual Completion Date"
+                )}
 
-                {/* Status by User */}
-                {renderTextField("status_by_user", "Status by User", "Enter status")}
+                {/* Status by User — dropdown: Yet to Start, WIP, Sent for Review, Reviewed, Uploaded */}
+                {renderSelect(
+                  "status_by_user",
+                  "Status by User",
+                  statusByUserOptions,
+                  "label"
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">

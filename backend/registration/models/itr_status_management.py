@@ -12,22 +12,21 @@ def itr_status_management_upload_to(instance, filename):
 class ItrStatusManagement(BaseModel):
 
     financial_year = models.ForeignKey(
-        "masters.Period",
+        "masters.FinancialYear",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Financial Year",
-        help_text="Dropdown from Period Master",
+        help_text="Dropdown from Financial Year Master",
     )
 
     assessment_year = models.ForeignKey(
-        "masters.Period",
+        "masters.AssessmentYear",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="itr_status_assessment_year",
         verbose_name="Assessment Year",
-        help_text="Dropdown from Period Master",
+        help_text="Dropdown from Assessment Year Master",
     )
 
     pan = models.ForeignKey(
@@ -61,16 +60,15 @@ class ItrStatusManagement(BaseModel):
         blank=True,
         null=True,
         verbose_name="Filing Type",
-        help_text="Manual entry (e.g., Original, Revised)",
+        help_text="Dropdown: Original, Revised, Updated, Modified",
     )
 
-    itr_form = models.ForeignKey(
-        "masters.FormMaster",
-        on_delete=models.SET_NULL,
-        null=True,
+    itr_form = models.CharField(
+        max_length=100,
         blank=True,
+        null=True,
         verbose_name="ITR Form",
-        help_text="Select ITR form from Form Master",
+        help_text="Dropdown: ITR 5, ITR 6, ITR 7",
     )
 
     acknowledgement_upload = models.FileField(
@@ -124,11 +122,11 @@ class ItrStatusManagement(BaseModel):
             "assessment_year",
             "pan",
             "compliance_section",
-            "itr_form",
         ],
         "search_fields": [
             "filing_type",
             "status_by_user",
+            "itr_form",
         ],
         "filter_fields": [
             "financial_year",
@@ -138,13 +136,13 @@ class ItrStatusManagement(BaseModel):
             "itr_form",
         ],
         "list_display_fields": [
-            "financial_year.category",
-            "assessment_year.category",
+            "financial_year.financial_year",
+            "assessment_year.assessment_year",
             "pan.pan",
             "legal_entity",
             "compliance_section.section_2025",
             "filing_type",
-            "itr_form.form_no",
+            "itr_form",
             "statutory_timelines",
             "internal_timelines",
             "actual_completion_date",
@@ -166,11 +164,10 @@ class ItrStatusManagement(BaseModel):
             "status_by_user",
         ],
         "include_related_field_values": [
-            "financial_year.category",
-            "assessment_year.category",
+            "financial_year.financial_year",
+            "assessment_year.assessment_year",
             "pan.pan",
             "compliance_section.section_2025",
-            "itr_form.form_no",
         ],
     }
 
