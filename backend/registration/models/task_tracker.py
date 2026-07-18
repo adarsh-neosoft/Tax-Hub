@@ -110,9 +110,7 @@ class TaskTracker(BaseModel):
             "fy.category",
             "legal_entity_code",
             "legal_entity.entity_name",
-            "task_name",
             "assign_to.employee_name",
-            "priority",
             "status",
         ],
         "form_display_fields": [
