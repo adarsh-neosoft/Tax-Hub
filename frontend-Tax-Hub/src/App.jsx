@@ -20,6 +20,7 @@ import ItrStatusManagementFormPage from "./pages/ItrStatusManagementFormPage";
 import ComplianceManagementFormPage from "./pages/ComplianceManagementFormPage";
 import OpinionManagementFormPage from "./pages/OpinionManagementFormPage";
 import ValuationReportManagementFormPage from "./pages/ValuationReportManagementFormPage";
+import TaskTrackerFormPage from "./pages/TaskTrackerFormPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,8 @@ const customRoutes = [
   { path: "/opinion-management/:id/edit", element: <OpinionManagementFormPage /> },
   { path: "/valuation-report-management/create", element: <ValuationReportManagementFormPage /> },
   { path: "/valuation-report-management/:id/edit", element: <ValuationReportManagementFormPage /> },
+  { path: "/task-tracker/create", element: <TaskTrackerFormPage /> },
+  { path: "/task-tracker/:id/edit", element: <TaskTrackerFormPage /> },
 ];
 
 function AppLayout() {

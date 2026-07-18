@@ -13,12 +13,20 @@ class TaskTracker(BaseModel):
         help_text="From Period Master",
     )
 
+    legal_entity_code = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Legal Entity Code",
+        help_text="Auto-filled from Legal Entity Master based on selected Legal Entity Name",
+    )
+
     legal_entity = models.ForeignKey(
         "masters.LegalEntity",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Legal Entity",
+        verbose_name="Legal Entity Name",
         help_text="From Legal Entity Master",
     )
 
@@ -89,6 +97,7 @@ class TaskTracker(BaseModel):
             "task_name",
             "status",
             "priority",
+            "legal_entity_code",
         ],
         "filter_fields": [
             "fy",
@@ -99,13 +108,16 @@ class TaskTracker(BaseModel):
         ],
         "list_display_fields": [
             "fy.category",
-            "legal_entity.sap_code",
+            "legal_entity_code",
             "legal_entity.entity_name",
+            "task_name",
             "assign_to.employee_name",
+            "priority",
             "status",
         ],
         "form_display_fields": [
             "fy",
+            "legal_entity_code",
             "legal_entity",
             "task_name",
             "assign_to",
@@ -117,7 +129,6 @@ class TaskTracker(BaseModel):
         ],
         "include_related_field_values": [
             "fy.category",
-            "legal_entity.sap_code",
             "legal_entity.entity_name",
             "assign_to.employee_name",
         ],
@@ -136,6 +147,18 @@ class TaskTracker(BaseModel):
         app_label = "registration"
         verbose_name = "Task Tracker"
         verbose_name_plural = "Task Tracker"
+
+    def save(self, *args, **kwargs):
+        """Auto-populate legal_entity_code from selected LegalEntity's sap_code."""
+        if self.legal_entity_id:
+            from masters.models import LegalEntity
+            try:
+                le = LegalEntity.objects.get(pk=self.legal_entity_id)
+                if le and le.sap_code:
+                    self.legal_entity_code = le.sap_code
+            except LegalEntity.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
 
     def __str__(self):
         if self.legal_entity_id:
