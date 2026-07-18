@@ -85,6 +85,7 @@ export default function FormManagementFormPage() {
       financial_year: "",
       assessment_year: "",
       pan: "",
+      legal_entity: "",
       compliance_name: "",
       compliance_section: "",
       form_no: "",
@@ -106,6 +107,7 @@ export default function FormManagementFormPage() {
       financial_year: recordQuery.data.financial_year ? String(recordQuery.data.financial_year) : "",
       assessment_year: recordQuery.data.assessment_year ? String(recordQuery.data.assessment_year) : "",
       pan: recordQuery.data.pan ? String(recordQuery.data.pan) : "",
+      legal_entity: recordQuery.data.legal_entity || "",
       compliance_name: recordQuery.data.compliance_name ? String(recordQuery.data.compliance_name) : "",
       compliance_section: recordQuery.data.compliance_section ? String(recordQuery.data.compliance_section) : "",
       form_no: recordQuery.data.form_no ? String(recordQuery.data.form_no) : "",
@@ -137,6 +139,21 @@ export default function FormManagementFormPage() {
       form.setValue("form_description", selected.form_description || "");
     }
   }, [selectedFormNoId, formMastersQuery.data, form]);
+
+  // --- Autofill: when pan changes, fill legal_entity from selected LegalEntity ---
+  const selectedPanId = form.watch("pan");
+
+  useEffect(() => {
+    if (!selectedPanId) {
+      form.setValue("legal_entity", "");
+      return;
+    }
+    const entities = legalEntitiesQuery.data || [];
+    const selected = entities.find((e) => String(e.id) === String(selectedPanId));
+    if (selected) {
+      form.setValue("legal_entity", selected.entity_name || "");
+    }
+  }, [selectedPanId, legalEntitiesQuery.data, form]);
 
   // Navigation helpers
   const pageParam = searchParams.get("page");
@@ -348,6 +365,26 @@ export default function FormManagementFormPage() {
 
                 {/* PAN — shows PAN number from LegalEntity */}
                 {renderSelect("pan", "PAN", legalEntities, "pan")}
+
+                {/* Legal Entity — auto-filled from PAN */}
+                <FormField
+                  control={form.control}
+                  name="legal_entity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Legal Entity</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          placeholder="Auto-filled from PAN"
+                          className="bg-muted/30"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Compliance Name */}
                 {renderSelect("compliance_name", "Compliance Name", compliances, "compliance_name")}

@@ -36,6 +36,14 @@ class FormManagement(BaseModel):
         help_text="Select PAN from Legal Entity Master",
     )
 
+    legal_entity = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Legal Entity",
+        help_text="Auto-filled from Legal Entity Master based on selected PAN",
+    )
+
     compliance_name = models.ForeignKey(
         "masters.Compliance",
         on_delete=models.SET_NULL,
@@ -131,6 +139,7 @@ class FormManagement(BaseModel):
         "search_fields": [
             "filing_type",
             "status_by_user",
+            "legal_entity",
         ],
         "filter_fields": [
             "financial_year",
@@ -144,6 +153,7 @@ class FormManagement(BaseModel):
             "financial_year.financial_year",
             "assessment_year.assessment_year",
             "pan.pan",
+            "legal_entity",
             "compliance_name.compliance_name",
             "compliance_section.section_2025",
             "form_no.form_no",
@@ -158,6 +168,7 @@ class FormManagement(BaseModel):
             "financial_year",
             "assessment_year",
             "pan",
+            "legal_entity",
             "compliance_name",
             "compliance_section",
             "form_no",
@@ -199,6 +210,12 @@ class FormManagement(BaseModel):
             fm = self.form_no
             if fm and fm.form_description:
                 self.form_description = fm.form_description
+
+        # Auto-populate legal_entity from selected PAN (LegalEntity)
+        if self.pan_id:
+            le = self.pan
+            if le and le.entity_name:
+                self.legal_entity = le.entity_name
 
         # Normalize file paths: strip MEDIA_ROOT prefix so Django generates correct URLs
         for field in self._meta.get_fields():
