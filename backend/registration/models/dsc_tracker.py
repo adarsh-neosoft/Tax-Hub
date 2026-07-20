@@ -79,6 +79,7 @@ class DscTracker(BaseModel):
             "dsc_registered_on_it",
         ],
         "include_related_field_values": [
+            "name.id",
             "name.director_name",
         ],
     }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -60,9 +60,10 @@ export default function TaskTrackerFormPage() {
   const baseUrl = "task-tracker";
 
   // Fetch all FK dropdown options
-  const periodsQuery = useQuery({
-    queryKey: ["periods", "dropdown"],
-    queryFn: () => api.get("/masters/period/dropdown").then((r) => r.data),
+  const financialYearsQuery = useQuery({
+    queryKey: ["financial-years", "dropdown"],
+    queryFn: () =>
+      api.get("/masters/FinancialYear/dropdown").then((r) => r.data),
   });
 
   const legalEntitiesQuery = useQuery({
@@ -84,6 +85,18 @@ export default function TaskTrackerFormPage() {
     enabled: isEdit,
   });
 
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    financialYearsQuery.isPending ||
+    legalEntitiesQuery.isPending ||
+    userMastersQuery.isPending ||
+    !formReady
+  );
+
+  const fv = (field) => recordQuery.data?.[field] ? String(recordQuery.data[field]) : "";
   const form = useForm({
     defaultValues: {
       fy: "",
@@ -99,26 +112,30 @@ export default function TaskTrackerFormPage() {
     },
   });
 
-  // Populate form when record loads in edit mode
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
+
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      fy: recordQuery.data.fy ? String(recordQuery.data.fy) : "",
+      fy: fv("fy.id"),
       legal_entity_code: recordQuery.data.legal_entity_code || "",
-      legal_entity: recordQuery.data.legal_entity
-        ? String(recordQuery.data.legal_entity)
-        : "",
+      legal_entity: fv("legal_entity.id"),
       task_name: recordQuery.data.task_name || "",
-      assign_to: recordQuery.data.assign_to
-        ? String(recordQuery.data.assign_to)
-        : "",
+      assign_to: fv("assign_to.id"),
       priority: recordQuery.data.priority || "",
       status: recordQuery.data.status || "",
       statutory_date: recordQuery.data.statutory_date || "",
       internal_date: recordQuery.data.internal_date || "",
       reminder_date: recordQuery.data.reminder_date || "",
     });
-  }, [recordQuery.data, form]);
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Autofill: when legal_entity (Legal Entity Name) changes, fill legal_entity_code ---
   const selectedLegalEntityId = form.watch("legal_entity");
@@ -184,10 +201,9 @@ export default function TaskTrackerFormPage() {
     mutation.mutate(payload);
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit ? "Edit Task Tracker" : "Create Task Tracker";
 
-  const periods = periodsQuery.data || [];
+  const financialYears = financialYearsQuery.data || [];
   const legalEntities = legalEntitiesQuery.data || [];
   const userMasters = userMastersQuery.data || [];
 
@@ -316,8 +332,8 @@ export default function TaskTrackerFormPage() {
           <Form {...form}>
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* FY — Dropdown from Period Master */}
-                {renderSelect("fy", "FY", periods, "category")}
+                {/* FY — Dropdown from Financial Year Master */}
+                {renderSelect("fy", "FY", financialYears, "financial_year")}
 
                 {/* Legal Entity Code — auto-filled from Legal Entity Name */}
                 <FormField

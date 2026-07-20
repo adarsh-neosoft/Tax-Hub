@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -57,6 +57,15 @@ export default function DscTrackerFormPage() {
 
   const directors = directorsQuery.data || [];
 
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    directorsQuery.isPending ||
+    !formReady
+  );
+
   const form = useForm({
     defaultValues: {
       name: "",
@@ -68,18 +77,28 @@ export default function DscTrackerFormPage() {
     },
   });
 
-  // Populate form when record loads in edit mode
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
+
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      name: recordQuery.data.name ? String(recordQuery.data.name) : "",
+      name: recordQuery.data["name.id"]
+        ? String(recordQuery.data["name.id"])
+        : "",
       pan: recordQuery.data.pan || "",
       father_name: recordQuery.data.father_name || "",
       from_date: recordQuery.data.from_date || "",
       to_date: recordQuery.data.to_date || "",
       dsc_registered_on_it: Boolean(recordQuery.data.dsc_registered_on_it),
     });
-  }, [recordQuery.data, form]);
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Autofill: when name (Director) changes, fill PAN from selected Director ---
   const selectedDirectorId = form.watch("name");
@@ -147,7 +166,6 @@ export default function DscTrackerFormPage() {
     mutation.mutate(payload);
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit ? "Edit DSC Tracker" : "Create DSC Tracker";
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -101,6 +101,19 @@ export default function ItrStatusManagementFormPage() {
     enabled: isEdit,
   });
 
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    financialYearsQuery.isPending ||
+    assessmentYearsQuery.isPending ||
+    legalEntitiesQuery.isPending ||
+    lawSectionsQuery.isPending ||
+    !formReady
+  );
+
+  const fv = (field) => recordQuery.data?.[field] ? String(recordQuery.data[field]) : "";
   const form = useForm({
     defaultValues: {
       financial_year: "",
@@ -119,21 +132,22 @@ export default function ItrStatusManagementFormPage() {
     },
   });
 
-  // Populate form when record loads in edit mode
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
+
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      financial_year: recordQuery.data.financial_year
-        ? String(recordQuery.data.financial_year)
-        : "",
-      assessment_year: recordQuery.data.assessment_year
-        ? String(recordQuery.data.assessment_year)
-        : "",
-      pan: recordQuery.data.pan ? String(recordQuery.data.pan) : "",
+      financial_year: fv("financial_year.id"),
+      assessment_year: fv("assessment_year.id"),
+      pan: fv("pan.id"),
       legal_entity: recordQuery.data.legal_entity || "",
-      compliance_section: recordQuery.data.compliance_section
-        ? String(recordQuery.data.compliance_section)
-        : "",
+      compliance_section: fv("compliance_section.id"),
       filing_type: recordQuery.data.filing_type || "",
       itr_form: recordQuery.data.itr_form || "",
       acknowledgement_upload: null,
@@ -143,7 +157,8 @@ export default function ItrStatusManagementFormPage() {
       actual_completion_date: recordQuery.data.actual_completion_date || "",
       status_by_user: recordQuery.data.status_by_user || "",
     });
-  }, [recordQuery.data, form]);
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Autofill: when PAN changes, fill legal_entity from selected LegalEntity ---
   const selectedPanId = form.watch("pan");
@@ -228,7 +243,6 @@ export default function ItrStatusManagementFormPage() {
     }
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit ? "Edit ITR Status" : "Create ITR Status";
 
   const financialYears = financialYearsQuery.data || [];
@@ -426,6 +440,14 @@ export default function ItrStatusManagementFormPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Acknowledgement Upload</FormLabel>
+                      {recordQuery.data?.acknowledgement_upload && !field.value && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">Current:</span>
+                          <a href={recordQuery.data.acknowledgement_upload} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80">
+                            {recordQuery.data.acknowledgement_upload.split("/").pop()}
+                          </a>
+                        </div>
+                      )}
                       <FormControl>
                         <Input
                           type="file"
@@ -434,6 +456,9 @@ export default function ItrStatusManagementFormPage() {
                           }
                         />
                       </FormControl>
+                      {recordQuery.data?.acknowledgement_upload && !field.value && (
+                        <p className="text-[11px] text-muted-foreground">Leave empty to keep current file</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -446,6 +471,14 @@ export default function ItrStatusManagementFormPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>ITR Form Upload</FormLabel>
+                      {recordQuery.data?.itr_form_upload && !field.value && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">Current:</span>
+                          <a href={recordQuery.data.itr_form_upload} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80">
+                            {recordQuery.data.itr_form_upload.split("/").pop()}
+                          </a>
+                        </div>
+                      )}
                       <FormControl>
                         <Input
                           type="file"
@@ -454,6 +487,9 @@ export default function ItrStatusManagementFormPage() {
                           }
                         />
                       </FormControl>
+                      {recordQuery.data?.itr_form_upload && !field.value && (
+                        <p className="text-[11px] text-muted-foreground">Leave empty to keep current file</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

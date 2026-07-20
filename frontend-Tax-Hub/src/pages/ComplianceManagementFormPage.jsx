@@ -112,6 +112,22 @@ export default function ComplianceManagementFormPage() {
     enabled: isEdit,
   });
 
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    legalEntitiesQuery.isPending ||
+    verticalsQuery.isPending ||
+    lawsQuery.isPending ||
+    compliancesQuery.isPending ||
+    lawSectionsQuery.isPending ||
+    periodsQuery.isPending ||
+    userMastersQuery.isPending ||
+    !formReady
+  );
+
+  const fv = (field) => recordQuery.data?.[field] ? String(recordQuery.data[field]) : "";
   const form = useForm({
     defaultValues: {
       pan: "",
@@ -133,46 +149,44 @@ export default function ComplianceManagementFormPage() {
     },
   });
 
-  // Populate form when record loads in edit mode
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
+
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      pan: recordQuery.data.pan ? String(recordQuery.data.pan) : "",
-      vertical: recordQuery.data.vertical ? String(recordQuery.data.vertical) : "",
+      pan: fv("pan.id"),
+      vertical: fv("vertical.id"),
       legal_entity: recordQuery.data.legal_entity || "",
-      law_name: recordQuery.data.law_name
-        ? String(recordQuery.data.law_name)
-        : "",
-      compliance_name: recordQuery.data.compliance_name
-        ? String(recordQuery.data.compliance_name)
-        : "",
-      compliance_section: recordQuery.data.compliance_section
-        ? String(recordQuery.data.compliance_section)
-        : "",
-      period: recordQuery.data.period ? String(recordQuery.data.period) : "",
-      frequency: recordQuery.data.frequency
-        ? String(recordQuery.data.frequency)
-        : "",
-      user_involved: recordQuery.data.user_involved
-        ? String(recordQuery.data.user_involved)
-        : "",
+      law_name: fv("law_name.id"),
+      compliance_name: fv("compliance_name.id"),
+      compliance_section: fv("compliance_section.id"),
+      period: fv("period.id"),
+      frequency: fv("frequency.id"),
+      user_involved: fv("user_involved.id"),
       statutory_timelines: recordQuery.data.statutory_timelines || "",
       internal_timelines: recordQuery.data.internal_timelines || "",
       actual_completion_date: recordQuery.data.actual_completion_date || "",
       status_by_user: recordQuery.data.status_by_user || "",
       document_link: null,
-      status_by_workspace_admin:
-        recordQuery.data.status_by_workspace_admin || "",
-      status_from_income_tax_website:
-        recordQuery.data.status_from_income_tax_website || "",
+      status_by_workspace_admin: recordQuery.data.status_by_workspace_admin || "",
+      status_from_income_tax_website: recordQuery.data.status_from_income_tax_website || "",
     });
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Also load FormManagement documents if PAN is set in edit mode
-    const panId = recordQuery.data.pan;
+  // Load FormManagement documents when PAN is available in edit mode
+  useEffect(() => {
+    const panId = recordQuery.data?.["pan.id"];
     if (panId) {
       fetchFormManagementData(panId);
     }
-  }, [recordQuery.data, form]);
+  }, [recordQuery.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Autofill: when PAN changes, fill legal_entity & fetch FormManagement data ---
   const selectedPanId = form.watch("pan");
@@ -317,7 +331,6 @@ export default function ComplianceManagementFormPage() {
     }
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit
     ? "Edit Compliance Management"
     : "Create Compliance Management";
@@ -559,6 +572,14 @@ export default function ComplianceManagementFormPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Document Link</FormLabel>
+                      {recordQuery.data?.document_link && !field.value && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">Current:</span>
+                          <a href={recordQuery.data.document_link} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80">
+                            {recordQuery.data.document_link.split("/").pop()}
+                          </a>
+                        </div>
+                      )}
                       <FormControl>
                         <Input
                           type="file"
@@ -567,6 +588,9 @@ export default function ComplianceManagementFormPage() {
                           }
                         />
                       </FormControl>
+                      {recordQuery.data?.document_link && !field.value && (
+                        <p className="text-[11px] text-muted-foreground">Leave empty to keep current file</p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

@@ -86,7 +86,9 @@ class ValuationReportManagement(BaseModel):
             "team_members_involved",
         ],
         "include_related_field_values": [
+            "entity.id",
             "entity.entity_name",
+            "purpose.id",
             "purpose.law_name",
         ],
     }

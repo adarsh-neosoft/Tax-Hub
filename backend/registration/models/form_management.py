@@ -182,10 +182,15 @@ class FormManagement(BaseModel):
             "status_by_user",
         ],
         "include_related_field_values": [
+            "financial_year.id",
             "financial_year.financial_year",
+            "assessment_year.id",
             "assessment_year.assessment_year",
+            "pan.id",
             "pan.pan",
+            "compliance_name.id",
             "compliance_name.compliance_name",
+            "compliance_section.id",
             "compliance_section.section_2025",
         ],
     }

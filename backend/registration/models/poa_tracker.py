@@ -100,7 +100,9 @@ class PoaTracker(BaseModel):
             "poa_repository",
         ],
         "include_related_field_values": [
+            "entity_name.id",
             "entity_name.entity_name",
+            "forum.id",
             "forum.forum_name",
         ],
     }

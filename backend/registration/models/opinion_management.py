@@ -84,6 +84,7 @@ class OpinionManagement(BaseModel):
             "attachment",
         ],
         "include_related_field_values": [
+            "entity.id",
             "entity.entity_name",
         ],
     }

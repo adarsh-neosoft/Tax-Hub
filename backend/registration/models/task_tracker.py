@@ -5,7 +5,7 @@ from api.base_model import BaseModel
 class TaskTracker(BaseModel):
 
     fy = models.ForeignKey(
-        "masters.Period",
+        "masters.FinancialYear",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -126,8 +126,11 @@ class TaskTracker(BaseModel):
             "reminder_date",
         ],
         "include_related_field_values": [
+            "fy.id",
             "fy.category",
+            "legal_entity.id",
             "legal_entity.entity_name",
+            "assign_to.id",
             "assign_to.employee_name",
         ],
     }

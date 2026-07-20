@@ -64,6 +64,26 @@ export default function PoaTrackerFormPage() {
   const legalEntities = legalEntitiesQuery.data || [];
   const forums = forumsQuery.data || [];
 
+  const [currentFileUrl, setCurrentFileUrl] = useState("");
+
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    legalEntitiesQuery.isPending ||
+    forumsQuery.isPending ||
+    !formReady
+  );
+
+  // Set current file URL when record loads
+  useEffect(() => {
+    if (recordQuery.data?.poa_repository) {
+      setCurrentFileUrl(recordQuery.data.poa_repository);
+    }
+  }, [recordQuery.data]);
+
+  const fv = (field) => recordQuery.data?.[field] ? String(recordQuery.data[field]) : "";
   const form = useForm({
     defaultValues: {
       entity_name: "",
@@ -76,24 +96,27 @@ export default function PoaTrackerFormPage() {
     },
   });
 
-  const [currentFileUrl, setCurrentFileUrl] = useState("");
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
 
-  // Populate form when record loads in edit mode
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     form.reset({
-      entity_name: recordQuery.data.entity_name || "",
+      entity_name: fv("entity_name.id"),
       poa_holder_name: recordQuery.data.poa_holder_name || "",
-      forum: recordQuery.data.forum ? String(recordQuery.data.forum) : "",
+      forum: fv("forum.id"),
       pan: recordQuery.data.pan || "",
       from_date: recordQuery.data.from_date || "",
       to_date: recordQuery.data.to_date || "",
-      poa_repository: null, // Can't pre-fill file input
+      poa_repository: null,
     });
-    if (recordQuery.data.poa_repository) {
-      setCurrentFileUrl(recordQuery.data.poa_repository);
-    }
-  }, [recordQuery.data, form]);
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Navigation helpers
   const pageParam = searchParams.get("page");
@@ -159,7 +182,6 @@ export default function PoaTrackerFormPage() {
     }
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit ? "Edit POA Tracker" : "Create POA Tracker";
 
   // Build URL for current file

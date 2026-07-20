@@ -82,6 +82,16 @@ export default function ValuationReportManagementFormPage() {
     enabled: isEdit,
   });
 
+  const [formReady, setFormReady] = useState(false);
+
+  // Wait for ALL queries AND form reset before rendering form content
+  const isLoading = isEdit && (
+    recordQuery.isPending ||
+    legalEntitiesQuery.isPending ||
+    lawsQuery.isPending ||
+    !formReady
+  );
+
   const form = useForm({
     defaultValues: {
       name_of_firm_counsel: "",
@@ -93,21 +103,27 @@ export default function ValuationReportManagementFormPage() {
     },
   });
 
-  // Populate form when record loads in edit mode
+  // Reset formReady when navigating to a new record
+  useEffect(() => {
+    if (recordQuery.isPending) {
+      setFormReady(false);
+    }
+  }, [recordQuery.isPending]);
+
+  // Populate form with correct FK values, THEN allow form to render
   useEffect(() => {
     if (!recordQuery.data) return;
     const m2mValue = recordQuery.data.team_members_involved || [];
     form.reset({
       name_of_firm_counsel: recordQuery.data.name_of_firm_counsel || "",
-      entity: recordQuery.data.entity ? String(recordQuery.data.entity) : "",
-      purpose: recordQuery.data.purpose ? String(recordQuery.data.purpose) : "",
+      entity: recordQuery.data["entity.id"] ? String(recordQuery.data["entity.id"]) : "",
+      purpose: recordQuery.data["purpose.id"] ? String(recordQuery.data["purpose.id"]) : "",
       date_of_report: recordQuery.data.date_of_report || "",
       attachment: null,
-      team_members_involved: Array.isArray(m2mValue)
-        ? m2mValue.map(String)
-        : [],
+      team_members_involved: Array.isArray(m2mValue) ? m2mValue.map(String) : [],
     });
-  }, [recordQuery.data, form]);
+    setFormReady(true);
+  }, [recordQuery.data, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Navigation helpers
   const pageParam = searchParams.get("page");
@@ -182,7 +198,6 @@ export default function ValuationReportManagementFormPage() {
     }
   });
 
-  const isLoading = isEdit && recordQuery.isPending;
   const title = isEdit
     ? "Edit Valuation Report"
     : "Create Valuation Report";
@@ -377,6 +392,19 @@ export default function ValuationReportManagementFormPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Attachment (Download)</FormLabel>
+                      {recordQuery.data?.attachment && !field.value && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">Current:</span>
+                          <a
+                            href={recordQuery.data.attachment}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                          >
+                            {recordQuery.data.attachment.split("/").pop()}
+                          </a>
+                        </div>
+                      )}
                       <FormControl>
                         <Input
                           type="file"
@@ -385,6 +413,11 @@ export default function ValuationReportManagementFormPage() {
                           }
                         />
                       </FormControl>
+                      {recordQuery.data?.attachment && !field.value && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Leave empty to keep the current file
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

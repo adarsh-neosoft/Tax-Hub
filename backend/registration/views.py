@@ -29,6 +29,8 @@ def _get_form_management_serializer():
                 try:
                     fm = instance.form_no
                     if fm:
+                        # Save the raw FK id BEFORE overwriting data["form_no"]
+                        data["form_no.id"] = instance.form_no_id
                         data["form_no"] = fm.form_no
                         data["form_no.form_no"] = fm.form_no
                         data["form_no.form_description"] = fm.form_description
