@@ -107,7 +107,7 @@ class TaskTracker(BaseModel):
             "priority",
         ],
         "list_display_fields": [
-            "fy.category",
+            "fy.financial_year",
             "legal_entity_code",
             "legal_entity.entity_name",
             "assign_to.employee_name",
@@ -127,7 +127,7 @@ class TaskTracker(BaseModel):
         ],
         "include_related_field_values": [
             "fy.id",
-            "fy.category",
+            "fy.financial_year",
             "legal_entity.id",
             "legal_entity.entity_name",
             "assign_to.id",

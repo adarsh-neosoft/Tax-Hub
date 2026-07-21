@@ -24,6 +24,10 @@ from registration.views import (
     FormManagementDetailView,
     ComplianceManagementListCreateView,
     ComplianceManagementDetailView,
+    OpinionManagementListCreateView,
+    OpinionManagementDetailView,
+    ValuationReportManagementListCreateView,
+    ValuationReportManagementDetailView,
     FormManagementByPanView,
 )
 from tax_requests.public_views import PublicDropdownView
@@ -80,6 +84,28 @@ urlpatterns = [
         "api/registration/compliancemanagement/<str:pk>/",
         ComplianceManagementDetailView.as_view(),
         kwargs={"app_label": "registration", "model_name": "compliancemanagement"},
+    ),
+    # Custom Opinion Management endpoints — registered before generic api.urls
+    path(
+        "api/registration/opinionmanagement/",
+        OpinionManagementListCreateView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "opinionmanagement"},
+    ),
+    path(
+        "api/registration/opinionmanagement/<str:pk>/",
+        OpinionManagementDetailView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "opinionmanagement"},
+    ),
+    # Custom Valuation Report Management endpoints — registered before generic api.urls
+    path(
+        "api/registration/valuationreportmanagement/",
+        ValuationReportManagementListCreateView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "valuationreportmanagement"},
+    ),
+    path(
+        "api/registration/valuationreportmanagement/<str:pk>/",
+        ValuationReportManagementDetailView.as_view(),
+        kwargs={"app_label": "registration", "model_name": "valuationreportmanagement"},
     ),
     # Endpoint to fetch FormManagement data by PAN (for Compliance Management auto-population)
     path(

@@ -5,7 +5,35 @@ from rest_framework.views import APIView
 
 from api.decorators import cache_model_api_response
 from api.views import GenericAPIView, _build_generic_serializer
-from registration.models import FormManagement, ComplianceManagement
+from registration.models import FormManagement, ComplianceManagement, OpinionManagement, ValuationReportManagement
+
+
+def _make_m2m_resolving_serializer(model_class):
+    """Factory for custom serializers that resolve team_members_involved M2M field."""
+    base_serializer = _build_generic_serializer(model_class)
+
+    class M2MResolvingSerializer(base_serializer):
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+
+            # Resolve team_members_involved M2M to employee names
+            names = list(
+                instance.team_members_involved.values_list("employee_name", flat=True)
+            )
+            if names:
+                data["team_members_involved.employee_name"] = ", ".join(names)
+
+            return data
+
+    return M2MResolvingSerializer
+
+
+def _get_opinion_management_serializer():
+    return _make_m2m_resolving_serializer(OpinionManagement)
+
+
+def _get_valuation_report_management_serializer():
+    return _make_m2m_resolving_serializer(ValuationReportManagement)
 
 
 def _get_form_management_serializer():
@@ -122,6 +150,90 @@ class ComplianceManagementDetailView(GenericAPIView, RetrieveUpdateDestroyAPIVie
 
     def get_serializer_class(self):
         return _build_generic_serializer(self.model)
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        self.model.objects.filter(pk=kwargs["pk"]).update(
+            is_deleted=True, is_active=False
+        )
+        return Response({"message": "Successfully deleted"})
+
+
+class OpinionManagementListCreateView(GenericAPIView, ListCreateAPIView):
+    """Custom list/create view for OpinionManagement with M2M team_members_involved resolution."""
+
+    model = OpinionManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _get_opinion_management_serializer()
+
+    @cache_model_api_response
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class OpinionManagementDetailView(GenericAPIView, RetrieveUpdateDestroyAPIView):
+    """Custom retrieve/update/destroy view for OpinionManagement."""
+
+    model = OpinionManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _get_opinion_management_serializer()
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        self.model.objects.filter(pk=kwargs["pk"]).update(
+            is_deleted=True, is_active=False
+        )
+        return Response({"message": "Successfully deleted"})
+
+
+class ValuationReportManagementListCreateView(GenericAPIView, ListCreateAPIView):
+    """Custom list/create view for ValuationReportManagement with M2M team_members_involved resolution."""
+
+    model = ValuationReportManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _get_valuation_report_management_serializer()
+
+    @cache_model_api_response
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ValuationReportManagementDetailView(GenericAPIView, RetrieveUpdateDestroyAPIView):
+    """Custom retrieve/update/destroy view for ValuationReportManagement."""
+
+    model = ValuationReportManagement
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        return _get_valuation_report_management_serializer()
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)

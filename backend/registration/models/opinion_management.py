@@ -73,7 +73,7 @@ class OpinionManagement(BaseModel):
             "purpose",
             "date_of_opinion",
             "attachment",
-            "team_members_involved",
+            "team_members_involved.employee_name",
         ],
         "form_display_fields": [
             "entity",

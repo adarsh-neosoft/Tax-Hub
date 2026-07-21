@@ -75,7 +75,7 @@ class ValuationReportManagement(BaseModel):
             "purpose.law_name",
             "date_of_report",
             "attachment",
-            "team_members_involved",
+            "team_members_involved.employee_name",
         ],
         "form_display_fields": [
             "name_of_firm_counsel",
