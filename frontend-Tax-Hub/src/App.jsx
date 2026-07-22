@@ -21,6 +21,7 @@ import ComplianceManagementFormPage from "./pages/ComplianceManagementFormPage";
 import OpinionManagementFormPage from "./pages/OpinionManagementFormPage";
 import ValuationReportManagementFormPage from "./pages/ValuationReportManagementFormPage";
 import TaskTrackerFormPage from "./pages/TaskTrackerFormPage";
+import DscExpiryPopup from "./pages/DscExpiryPopup";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,8 @@ function AppLayout() {
   return (
     <AuthProvider>
       <Toaster richColors closeButton position="top-right" />
+      {/* DSC Expiry Popup — only on DSC Tracker list view */}
+      {location.pathname === "/dsc-tracker" && <DscExpiryPopup />}
       <IronStackApp customRoutes={customRoutes} />
     </AuthProvider>
   );

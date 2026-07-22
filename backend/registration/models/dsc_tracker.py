@@ -45,6 +45,34 @@ class DscTracker(BaseModel):
         verbose_name="Whether DSC registered on IT",
     )
 
+    # --- DSC Expiry Notification Fields ---
+    new_dsc_prepared = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name="New DSC Prepared?",
+        help_text="Whether a new DSC has been prepared (Yes/No/Not Asked)",
+    )
+
+    new_dsc_prepared_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="New DSC Response Date",
+        help_text="When the user responded about new DSC preparation",
+    )
+
+    initial_reminder_sent = models.BooleanField(
+        default=False,
+        verbose_name="Initial 30-day reminder sent",
+        help_text="Whether the first expiry reminder email was sent",
+    )
+
+    last_reminder_sent = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Last Reminder Sent",
+        help_text="Date of the last weekly reminder sent",
+    )
+
     model_config = {
         "encrypted_fields": [],
         "exclude_from_audit_log": [],
@@ -61,6 +89,7 @@ class DscTracker(BaseModel):
         ],
         "filter_fields": [
             "dsc_registered_on_it",
+            "new_dsc_prepared",
         ],
         "list_display_fields": [
             "name",
@@ -69,6 +98,7 @@ class DscTracker(BaseModel):
             "from_date",
             "to_date",
             "dsc_registered_on_it",
+            "new_dsc_prepared",
         ],
         "form_display_fields": [
             {"field": "name", "display_field": "director_name"},
@@ -77,10 +107,15 @@ class DscTracker(BaseModel):
             "from_date",
             "to_date",
             "dsc_registered_on_it",
+            "new_dsc_prepared",
         ],
         "include_related_field_values": [
             "name.id",
             "name.director_name",
+            "new_dsc_prepared",
+            "new_dsc_prepared_at",
+            "initial_reminder_sent",
+            "last_reminder_sent",
         ],
     }
 

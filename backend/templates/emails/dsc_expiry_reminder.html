@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1e3a5f; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .header h2 { margin: 0; }
+        .body { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .footer { background: #eee; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        td.label { font-weight: bold; width: 40%; background: #f0f4f8; }
+        .highlight { color: #d9534f; font-weight: bold; }
+        .note { background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>DSC Expiry Reminder</h2>
+        </div>
+        <div class="body">
+            {% if is_initial %}
+            <p>Dear User,</p>
+            <p>This is to inform you that the following Digital Signature Certificate (DSC) is <span class="highlight">expiring within 30 days</span>.</p>
+            {% else %}
+            <p>Dear User,</p>
+            <p>This is a <strong>weekly reminder</strong> that the following Digital Signature Certificate (DSC) is still <span class="highlight">expiring soon</span>.</p>
+            {% endif %}
+
+            <table>
+                <tr>
+                    <td class="label">Director Name</td>
+                    <td>{{ director_name }}</td>
+                </tr>
+                <tr>
+                    <td class="label">PAN</td>
+                    <td>{{ pan }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Father's Name</td>
+                    <td>{{ father_name }}</td>
+                </tr>
+                <tr>
+                    <td class="label">From Date</td>
+                    <td>{{ from_date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">To Date (Expiry)</td>
+                    <td class="highlight">{{ to_date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Days Remaining</td>
+                    <td class="highlight">{{ days_remaining }} days</td>
+                </tr>
+            </table>
+
+            <div class="note">
+                <strong>⚠ Action Required:</strong> Please ensure a new DSC is prepared before the expiry date to avoid any disruption in digital signing operations.
+            </div>
+
+            <p>If you have already arranged for a new DSC, kindly update the status in the system by selecting <strong>"Yes"</strong> when prompted.</p>
+
+            <p>Regards,<br>Tax-Hub Team</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+            <p>Tax-Hub &bull; DSC Tracker System</p>
+        </div>
+    </div>
+</body>
+</html>

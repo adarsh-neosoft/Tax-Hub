@@ -5,7 +5,11 @@ from rest_framework.views import APIView
 
 from api.decorators import cache_model_api_response
 from api.views import GenericAPIView, _build_generic_serializer
-from registration.models import FormManagement, ComplianceManagement, OpinionManagement, ValuationReportManagement
+from rest_framework import status
+from django.utils import timezone
+from datetime import timedelta
+
+from registration.models import FormManagement, ComplianceManagement, OpinionManagement, ValuationReportManagement, DscTracker
 
 
 def _make_m2m_resolving_serializer(model_class):
@@ -249,6 +253,120 @@ class ValuationReportManagementDetailView(GenericAPIView, RetrieveUpdateDestroyA
             is_deleted=True, is_active=False
         )
         return Response({"message": "Successfully deleted"})
+
+
+class DscExpiringSoonView(APIView):
+    """
+    Returns DSCs that are expiring within 30 days (future) and need user attention (popup).
+    Already-expired DSCs are excluded. Includes:
+      - DSCs where user has NOT responded yet (new_dsc_prepared is NULL)
+      - DSCs where user selected "No" (new_dsc_prepared is False) — keeps showing until Yes or expiry
+    Excludes:
+      - DSCs where user selected "Yes" (new_dsc_prepared is True)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        today = timezone.now().date()
+        thirty_days = today + timedelta(days=30)
+
+        expiring_dscs = DscTracker.objects.filter(
+            to_date__lte=thirty_days,
+            to_date__gte=today,
+            is_deleted=False,
+        ).exclude(new_dsc_prepared=True)
+
+        results = []
+        for dsc in expiring_dscs:
+            results.append({
+                "id": dsc.id,
+                "director_name": dsc.name.director_name if dsc.name else "N/A",
+                "pan": dsc.pan,
+                "father_name": dsc.father_name,
+                "from_date": str(dsc.from_date) if dsc.from_date else None,
+                "to_date": str(dsc.to_date) if dsc.to_date else None,
+            })
+
+        return Response(results)
+
+
+class DscUpdateNewDscPreparedView(APIView):
+    """
+    Update the new_dsc_prepared field for a DSC record.
+    Accepts: {"new_dsc_prepared": true/false}
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            dsc = DscTracker.objects.get(pk=pk, is_deleted=False)
+        except DscTracker.DoesNotExist:
+            return Response(
+                {"detail": "DSC record not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        value = request.data.get("new_dsc_prepared")
+        if value is None:
+            return Response(
+                {"detail": "new_dsc_prepared is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        dsc.new_dsc_prepared = bool(value)
+        dsc.new_dsc_prepared_at = timezone.now()
+        dsc.save(update_fields=["new_dsc_prepared", "new_dsc_prepared_at", "last_updated_at"])
+
+        return Response({
+            "id": dsc.id,
+            "new_dsc_prepared": dsc.new_dsc_prepared,
+            "new_dsc_prepared_at": dsc.new_dsc_prepared_at,
+        })
+
+
+class DscBatchUpdateNewDscPreparedView(APIView):
+    """
+    Batch update new_dsc_prepared for multiple DSC records at once.
+    Accepts: {"updates": [{"id": 1, "new_dsc_prepared": true}, ...]}
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        updates = request.data.get("updates", [])
+        if not isinstance(updates, list) or len(updates) == 0:
+            return Response(
+                {"detail": "Provide a non-empty list of updates."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        results = []
+        errors = []
+
+        for item in updates:
+            pk = item.get("id")
+            value = item.get("new_dsc_prepared")
+
+            if pk is None or value is None:
+                errors.append({"id": pk, "detail": "Both id and new_dsc_prepared are required."})
+                continue
+
+            try:
+                dsc = DscTracker.objects.get(pk=pk, is_deleted=False)
+                dsc.new_dsc_prepared = bool(value)
+                dsc.new_dsc_prepared_at = timezone.now()
+                dsc.save(update_fields=["new_dsc_prepared", "new_dsc_prepared_at", "last_updated_at"])
+                results.append({
+                    "id": dsc.id,
+                    "new_dsc_prepared": dsc.new_dsc_prepared,
+                    "new_dsc_prepared_at": dsc.new_dsc_prepared_at,
+                })
+            except DscTracker.DoesNotExist:
+                errors.append({"id": pk, "detail": "DSC record not found."})
+
+        return Response({
+            "success": results,
+            "errors": errors,
+        })
 
 
 class FormManagementByPanView(APIView):

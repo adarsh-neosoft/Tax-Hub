@@ -29,6 +29,9 @@ from registration.views import (
     ValuationReportManagementListCreateView,
     ValuationReportManagementDetailView,
     FormManagementByPanView,
+    DscExpiringSoonView,
+    DscUpdateNewDscPreparedView,
+    DscBatchUpdateNewDscPreparedView,
 )
 from tax_requests.public_views import PublicDropdownView
 from tax_requests.workflow_views import TDSOpinionRecordWorkflowView
@@ -111,6 +114,22 @@ urlpatterns = [
     path(
         "api/registration/formmanagement-by-pan/<int:pan_id>/",
         FormManagementByPanView.as_view(),
+    ),
+    # DSC Expiry Notification endpoints
+    path(
+        "api/registration/dsctracker/expiring-soon/",
+        DscExpiringSoonView.as_view(),
+        name="dsc-expiring-soon",
+    ),
+    path(
+        "api/registration/dsctracker/<int:pk>/update-new-dsc-prepared/",
+        DscUpdateNewDscPreparedView.as_view(),
+        name="dsc-update-new-dsc-prepared",
+    ),
+    path(
+        "api/registration/dsctracker/batch-update-new-dsc-prepared/",
+        DscBatchUpdateNewDscPreparedView.as_view(),
+        name="dsc-batch-update-new-dsc-prepared",
     ),
     path("api/", include("api.urls")),
     path("api/", include("rest_framework.urls")),
