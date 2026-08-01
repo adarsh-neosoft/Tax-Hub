@@ -45,6 +45,8 @@ models_to_register = [
     Type15CB,
     VendorStatus,
     PurchaseOrder,
+    Counsel,
+    FilingType,
 ]
 
 for model in models_to_register:

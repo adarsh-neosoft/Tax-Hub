@@ -29,17 +29,13 @@ class UserMaster(BaseModel):
         blank=True
     )
 
-    law = models.ForeignKey(
+    law = models.ManyToManyField(
         "masters.Law",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True
     )
 
-    vertical = models.ForeignKey(
+    vertical = models.ManyToManyField(
         "masters.Vertical",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True
     )
 

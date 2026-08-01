@@ -396,10 +396,16 @@ class Command(BaseCommand):
                 "email":         email,
                 "mobile":        _s(row.get("Mobile Number")) or None,
                 "role":          Role.objects.filter(role_type=role_nm).first()           if role_nm     else None,
-                "law":           Law.objects.filter(law_name=law_nm).first()              if law_nm      else None,
-                "vertical":      Vertical.objects.filter(particulars=vertical_nm).first() if vertical_nm else None,
             }, f"UserMaster → {sap_id} | {email}", dry)
             c += dc; s += ds
+            if not dry:
+                um = UserMaster.objects.get(sap_id=sap_id)
+                law_obj = Law.objects.filter(law_name=law_nm).first() if law_nm else None
+                vertical_obj = Vertical.objects.filter(particulars=vertical_nm).first() if vertical_nm else None
+                if law_obj:
+                    um.law.set([law_obj])
+                if vertical_obj:
+                    um.vertical.set([vertical_obj])
         if not dry: self._ok("UserMaster", c, s)
 
     def _exchange_rates(self, df, dry):
